@@ -6,6 +6,7 @@
     color: #f3f4f6;
     font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
+    transition: background-color 0.5s ease, color 0.5s ease;
   }
 }
 
@@ -17,11 +18,13 @@
 
 ::-webkit-scrollbar-track {
   background: rgba(15, 23, 42, 0.3);
+  transition: background-color 0.5s ease;
 }
 
 ::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.3);
   border-radius: 9999px;
+  transition: background-color 0.5s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -34,6 +37,7 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease;
 }
 
 .glass-panel-hover {
@@ -50,6 +54,7 @@
 .glass-input {
   background: rgba(15, 23, 42, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease;
 }
 
 .glass-input:focus {
@@ -75,4 +80,187 @@
 
 .animate-pulse-slow {
   animation: pulse-slow 8s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   Light Mode Theme Styling Overrides
+   ========================================================================== */
+
+.light {
+  /* Scrollbar override */
+  ::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.05);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.6);
+  }
+}
+
+.light body {
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+/* Panels & Containers */
+.light .glass-panel {
+  background: rgba(255, 255, 255, 0.75) !important;
+  border-color: rgba(15, 23, 42, 0.07) !important;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.05) !important;
+}
+
+.light .glass-panel-hover:hover {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08) !important;
+}
+
+.light .glass-input {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0f172a !important;
+}
+
+.light .glass-input:focus {
+  background: #ffffff !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important;
+}
+
+.light .glass-input::placeholder {
+  color: #64748b !important;
+}
+
+/* Dropdown containers and subgrids */
+.light .bg-slate-950\/95,
+.light .bg-slate-900\/95 {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.light .bg-slate-900\/90 {
+  background-color: rgba(248, 250, 252, 0.98) !important;
+}
+
+.light .bg-slate-900\/30 {
+  background-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.light .hover\:bg-slate-900\/50:hover {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.light .bg-slate-900\/50 {
+  background-color: rgba(15, 23, 42, 0.05) !important;
+}
+
+.light .bg-blue-600\/20 {
+  background-color: rgba(37, 99, 235, 0.12) !important;
+  border-color: rgba(37, 99, 235, 0.25) !important;
+}
+
+/* Translucent bg utilities */
+.light .bg-white\/5 {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+}
+
+.light .bg-white\/10 {
+  background-color: rgba(15, 23, 42, 0.07) !important;
+}
+
+.light .hover\:bg-white\/5:hover {
+  background-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+.light .hover\:bg-white\/10:hover {
+  background-color: rgba(15, 23, 42, 0.09) !important;
+}
+
+/* Border overrides */
+.light .border-white\/5 {
+  border-color: rgba(15, 23, 42, 0.05) !important;
+}
+
+.light .border-white\/10 {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.light .border-white\/20 {
+  border-color: rgba(15, 23, 42, 0.15) !important;
+}
+
+/* Text overrides */
+.light .text-white,
+.light .text-slate-100,
+.light .text-gray-100 {
+  color: #0f172a !important;
+}
+
+.light .text-slate-200 {
+  color: #1e293b !important;
+}
+
+.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+.light .text-slate-400 {
+  color: #475569 !important;
+}
+
+.light .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Brand logo gradient overrides */
+.light .from-blue-400 {
+  --tw-gradient-from: #1d4ed8 !important;
+}
+.light .via-sky-300 {
+  --tw-gradient-via: #0284c7 !important;
+}
+.light .to-indigo-400 {
+  --tw-gradient-to: #4338ca !important;
+}
+
+/* Weather chart specific overrides */
+.light svg line {
+  stroke: rgba(15, 23, 42, 0.07) !important;
+}
+
+.light .fill-white {
+  fill: #0f172a !important;
+}
+
+.light .fill-slate-400 {
+  fill: #475569 !important;
+}
+
+.light .stroke-blue-400 {
+  stroke: #2563eb !important;
+}
+
+.light .fill-\[\#0b0f19\] {
+  fill: #ffffff !important;
+}
+
+/* Accent link text & icon colors */
+.light .text-blue-400 {
+  color: #2563eb !important;
+}
+
+.light .text-indigo-400 {
+  color: #4f46e5 !important;
+}
+
+.light .text-sky-300 {
+  color: #0284c7 !important;
+}
+
+.light .bg-blue-600\/20.text-white {
+  color: #2563eb !important;
+  background-color: rgba(37, 99, 235, 0.1) !important;
+  border-color: #2563eb !important;
 }

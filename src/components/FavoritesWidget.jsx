@@ -16,7 +16,7 @@ export const FavoritesWidget = ({ currentCity, onSelectCity, activeUnit }) => {
       setFavorites(parsed);
     } else {
       // Default initial favorites
-      const defaults = ['New York', 'London', 'Tokyo', 'Dubai'];
+      const defaults = ['Lahore', 'Karachi', 'Islamabad', 'Multan'];
       setFavorites(defaults);
       localStorage.setItem('weathernow_favorites', JSON.stringify(defaults));
     }

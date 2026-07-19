@@ -9,7 +9,8 @@ import {
   IoSpeedometer,
   IoAlertCircle,
   IoShirt,
-  IoSunny,
+  IoSunny, 
+  IoMoon,
   IoTrendingUp,
   IoCloseCircle,
   IoInformationCircle,
@@ -22,16 +23,156 @@ import { WeatherChart } from './components/WeatherChart';
 import { FavoritesWidget } from './components/FavoritesWidget';
 import { WeatherIcon } from './components/WeatherIcon';
 
+const cityCountryMapping = {
+  // Pakistan
+  'Lahore': 'PK', 'Karachi': 'PK', 'Islamabad': 'PK', 'Rawalpindi': 'PK',
+  'Multan': 'PK', 'Vehari': 'PK', 'Faisalabad': 'PK', 'Peshawar': 'PK',
+  'Quetta': 'PK', 'Hyderabad': 'PK', 'Sialkot': 'PK', 'Gujranwala': 'PK',
+  'Bahawalpur': 'PK', 'Sahiwal': 'PK', 'Rahim Yar Khan': 'PK', 'Murree': 'PK',
+  'Gilgit': 'PK', 'Skardu': 'PK',
+  // International
+  'New York': 'US', 'Los Angeles': 'US', 'Chicago': 'US',
+  'London': 'GB', 'Manchester': 'GB', 'Birmingham': 'GB',
+  'Paris': 'FR', 'Marseille': 'FR',
+  'Berlin': 'DE', 'Munich': 'DE',
+  'Rome': 'IT', 'Milan': 'IT',
+  'Madrid': 'ES', 'Barcelona': 'ES',
+  'Amsterdam': 'NL', 'Brussels': 'BE',
+  'Tokyo': 'JP', 'Osaka': 'JP', 'Kyoto': 'JP',
+  'Seoul': 'KR',
+  'Beijing': 'CN', 'Shanghai': 'CN', 'Hong Kong': 'HK',
+  'Singapore': 'SG',
+  'Dubai': 'AE', 'Abu Dhabi': 'AE',
+  'Riyadh': 'SA', 'Jeddah': 'SA',
+  'Doha': 'QA', 'Muscat': 'OM', 'Kuwait City': 'KW',
+  'Mumbai': 'IN', 'Delhi': 'IN', 'Bangalore': 'IN', 'Chennai': 'IN',
+  'Hyderabad (India)': 'IN', 'Kolkata': 'IN',
+  'Dhaka': 'BD', 'Chittagong': 'BD',
+  'Kathmandu': 'NP', 'Colombo': 'LK',
+  'Toronto': 'CA', 'Vancouver': 'CA',
+  'Sydney': 'AU', 'Melbourne': 'AU', 'Auckland': 'NZ',
+  'Cape Town': 'ZA', 'Cairo': 'EG', 'Istanbul': 'TR', 'Moscow': 'RU',
+  'Bangkok': 'TH', 'Kuala Lumpur': 'MY', 'Jakarta': 'ID'
+};
+
 function App() {
   const [cityInput, setCityInput] = useState('');
-  const [currentCity, setCurrentCity] = useState('New York');
+  const [currentCity, setCurrentCity] = useState('Lahore');
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeUnit, setActiveUnit] = useState('C'); // 'C' or 'F'
   const [localTime, setLocalTime] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('weathernow_theme');
+    if (saved) return saved;
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return prefersDark ? 'dark' : 'light';
+  });
 
-  const popularCities = ['New York', 'London', 'Tokyo', 'Dubai', 'Paris', 'Sydney', 'Mumbai', 'Reykjavik'];
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.remove('light');
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+      root.classList.add('light');
+    }
+    localStorage.setItem('weathernow_theme', theme);
+  }, [theme]);
+
+  const popularPakistaniCities = [
+    'Lahore', 'Karachi', 'Islamabad', 'Rawalpindi', 'Multan', 'Vehari',
+    'Faisalabad', 'Peshawar', 'Quetta', 'Hyderabad', 'Sialkot', 'Gujranwala',
+    'Bahawalpur', 'Sahiwal', 'Rahim Yar Khan', 'Murree', 'Gilgit', 'Skardu'
+  ];
+
+  const internationalCities = [
+    'New York', 'Los Angeles', 'Chicago', 'London', 'Manchester', 'Birmingham',
+    'Paris', 'Marseille', 'Berlin', 'Munich', 'Rome', 'Milan', 'Madrid', 'Barcelona',
+    'Amsterdam', 'Brussels', 'Tokyo', 'Osaka', 'Kyoto', 'Seoul', 'Beijing', 'Shanghai',
+    'Hong Kong', 'Singapore', 'Dubai', 'Abu Dhabi', 'Riyadh', 'Jeddah', 'Doha', 'Muscat',
+    'Kuwait City', 'Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad (India)', 'Kolkata',
+    'Dhaka', 'Chittagong', 'Kathmandu', 'Colombo', 'Toronto', 'Vancouver', 'Sydney', 'Melbourne',
+    'Auckland', 'Cape Town', 'Cairo', 'Istanbul', 'Moscow', 'Bangkok', 'Kuala Lumpur', 'Jakarta'
+  ];
+
+  const popularCities = popularPakistaniCities;
+  const allCitiesForAutocomplete = [...popularPakistaniCities, ...internationalCities];
+
+  const [searchHistory, setSearchHistory] = useState(() => {
+    const saved = localStorage.getItem('weathernow_search_history');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const saveToHistory = (city) => {
+    if (!city || city.trim() === '') return;
+    const cleanCity = city.trim();
+    setSearchHistory((prev) => {
+      const filtered = prev.filter(c => c.toLowerCase() !== cleanCity.toLowerCase());
+      const updated = [cleanCity, ...filtered].slice(0, 10);
+      localStorage.setItem('weathernow_search_history', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const deleteHistoryItem = (cityToDelete) => {
+    setSearchHistory((prev) => {
+      const updated = prev.filter(c => c !== cityToDelete);
+      localStorage.setItem('weathernow_search_history', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const clearAllHistory = () => {
+    setSearchHistory([]);
+    localStorage.removeItem('weathernow_search_history');
+  };
+
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const [suggestions, setSuggestions] = useState([]);
+
+  // Calculate suggestions when input changes
+  useEffect(() => {
+    if (!cityInput.trim()) {
+      setSuggestions([]);
+      setActiveSuggestionIndex(-1);
+      return;
+    }
+    const filtered = allCitiesForAutocomplete.filter(city =>
+      city.toLowerCase().includes(cityInput.toLowerCase())
+    );
+    setSuggestions(filtered);
+    setActiveSuggestionIndex(-1);
+  }, [cityInput]);
+
+  const handleKeyDown = (e) => {
+    if (!showSearchSuggestions) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSuggestionIndex((prev) => 
+        prev < suggestions.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSuggestionIndex((prev) => 
+        prev > 0 ? prev - 1 : prev
+      );
+    } else if (e.key === 'Enter') {
+      if (activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
+        e.preventDefault();
+        const selectedCity = suggestions[activeSuggestionIndex];
+        setCityInput(selectedCity);
+        setCurrentCity(selectedCity);
+        fetchWeather(selectedCity, true);
+      }
+    } else if (e.key === 'Escape') {
+      setShowSearchSuggestions(false);
+      e.target.blur();
+    }
+  };
 
   // Update clock every second
   useEffect(() => {
@@ -52,32 +193,24 @@ function App() {
   }, []);
 
   // Fetch weather data
-  const fetchWeather = async (city) => {
+  const fetchWeather = async (city, saveToHistoryFlag = false) => {
     setLoading(true);
     try {
       const units = activeUnit === 'C' ? 'metric' : 'imperial';
-      const data = await getWeatherData(city, units);
+      const cleanCityName = city === 'Hyderabad (India)' ? 'Hyderabad, India' : city;
+      const data = await getWeatherData(cleanCityName, units);
       setWeatherData(data);
       setCurrentCity(data.city);
-      setCityInput('');
+      setCityInput(data.city);
       setShowSearchSuggestions(false);
       
-      if (data.isMock) {
-        toast('Showing simulated weather data. Add your OpenWeather API key in .env to enable real-time tracking!', {
-          icon: 'ℹ️',
-          style: {
-            borderRadius: '12px',
-            background: '#1e293b',
-            color: '#fff',
-            border: '1px solid rgba(255, 255, 255, 0.1)'
-          },
-          duration: 5000,
-        });
-      } else {
-        toast.success(`Updated weather for ${data.city}!`);
+      toast.success(`Updated weather for ${data.city}!`);
+      if (saveToHistoryFlag) {
+        saveToHistory(data.fullName || data.city);
       }
     } catch (error) {
       toast.error('Could not fetch weather data. Please check spelling.');
+      setCityInput(currentCity);
     } finally {
       setLoading(false);
     }
@@ -90,7 +223,7 @@ function App() {
       return;
     }
 
-    toast.loading('Fetching location...', { id: 'geo' });
+    toast.loading('Detecting your location...', { id: 'geo' });
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
@@ -100,15 +233,21 @@ function App() {
           const data = await getWeatherDataByCoords(latitude, longitude, units);
           setWeatherData(data);
           setCurrentCity(data.city);
-          toast.success(`Found location: ${data.city}!`, { id: 'geo' });
+          setCityInput(data.fullName || data.city);
+          toast.success(`Found location: ${data.fullName || data.city}!`, { id: 'geo' });
+          saveToHistory(data.fullName || data.city);
         } catch (e) {
-          toast.error('Failed to resolve location weather.', { id: 'geo' });
+          toast.error('Unable to detect your current location.\nPlease search for a city manually.', { id: 'geo' });
         } finally {
           setLoading(false);
         }
       },
       (error) => {
-        toast.error('Permission denied or location unavailable.', { id: 'geo' });
+        if (error.code === error.PERMISSION_DENIED) {
+          toast.error('Location permission denied.\nPlease enable location access to use this feature.', { id: 'geo' });
+        } else {
+          toast.error('Unable to detect your current location.\nPlease search for a city manually.', { id: 'geo' });
+        }
         setLoading(false);
       }
     );
@@ -129,29 +268,50 @@ function App() {
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (cityInput.trim()) {
-      fetchWeather(cityInput.trim());
+      fetchWeather(cityInput.trim(), true);
     }
   };
 
   // Dynamic Theme Gradients based on weather condition
   const getThemeGradient = () => {
-    if (!weatherData) return 'from-slate-950 via-[#0f172a] to-[#1e293b]';
-    const cond = weatherData.current.condition.toLowerCase();
+    if (theme === 'dark') {
+      if (!weatherData) return 'from-slate-950 via-[#0f172a] to-[#1e293b]';
+      const cond = weatherData.current.condition.toLowerCase();
 
-    switch (cond) {
-      case 'clear':
-        return 'from-slate-950 via-[#0e1a35] to-[#252210]'; // warm sun glow
-      case 'rain':
-      case 'drizzle':
-        return 'from-slate-950 via-[#0a1e35] to-[#0c1f24]'; // rain slate
-      case 'clouds':
-        return 'from-slate-950 via-[#101b2d] to-[#1c222c]'; // cloudy navy
-      case 'thunderstorm':
-        return 'from-slate-950 via-[#130f2b] to-[#121622]'; // stormy dark purple
-      case 'snow':
-        return 'from-slate-950 via-[#112338] to-[#182a3c]'; // cold ice blue
-      default:
-        return 'from-slate-950 via-[#0f172a] to-[#1e293b]';
+      switch (cond) {
+        case 'clear':
+          return 'from-slate-950 via-[#0e1a35] to-[#252210]'; // warm sun glow
+        case 'rain':
+        case 'drizzle':
+          return 'from-slate-950 via-[#0a1e35] to-[#0c1f24]'; // rain slate
+        case 'clouds':
+          return 'from-slate-950 via-[#101b2d] to-[#1c222c]'; // cloudy navy
+        case 'thunderstorm':
+          return 'from-slate-950 via-[#130f2b] to-[#121622]'; // stormy dark purple
+        case 'snow':
+          return 'from-slate-950 via-[#112338] to-[#182a3c]'; // cold ice blue
+        default:
+          return 'from-slate-950 via-[#0f172a] to-[#1e293b]';
+      }
+    } else {
+      if (!weatherData) return 'from-sky-100 via-blue-50 to-slate-50';
+      const cond = weatherData.current.condition.toLowerCase();
+
+      switch (cond) {
+        case 'clear':
+          return 'from-amber-100/60 via-sky-100 to-slate-50'; // warm sun glow light
+        case 'rain':
+        case 'drizzle':
+          return 'from-blue-100 via-slate-200 to-slate-50'; // rain slate light
+        case 'clouds':
+          return 'from-slate-200 via-sky-100 to-slate-50'; // cloudy light blue
+        case 'thunderstorm':
+          return 'from-purple-100 via-slate-200 to-slate-50'; // stormy light purple
+        case 'snow':
+          return 'from-blue-50 via-sky-50 to-slate-50'; // cold ice blue light
+        default:
+          return 'from-sky-100 via-blue-50 to-slate-50';
+      }
     }
   };
 
@@ -163,7 +323,7 @@ function App() {
     : null;
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${getThemeGradient()} text-gray-100 transition-all duration-1000 flex flex-col font-sans relative overflow-hidden pb-12`}>
+    <div className={`min-h-screen bg-gradient-to-br ${getThemeGradient()} ${theme === 'dark' ? 'text-gray-100' : 'text-slate-800'} transition-all duration-1000 flex flex-col font-sans relative overflow-hidden pb-12`}>
       {/* Decorative Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 blur-[120px] pointer-events-none animate-pulse-slow" />
       <div className="absolute bottom-[20%] right-[-10%] w-[35%] h-[35%] rounded-full bg-purple-500/10 blur-[120px] pointer-events-none animate-pulse-slow" />
@@ -195,15 +355,24 @@ function App() {
           </div>
 
           {/* Search bar & actions */}
-          <div className="flex items-center gap-3 w-full md:w-auto max-w-md z-30 relative">
+          <div className="flex items-center gap-3 w-full md:flex-grow md:max-w-2xl md:justify-end z-30 relative">
             <form onSubmit={handleSearchSubmit} className="relative flex-grow">
               <input
                 type="text"
                 placeholder="Search city, country..."
                 value={cityInput}
-                onFocus={() => setShowSearchSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 200)}
+                onFocus={() => {
+                  setCityInput('');
+                  setShowSearchSuggestions(true);
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    setCityInput(currentCity);
+                    setShowSearchSuggestions(false);
+                  }, 200);
+                }}
                 onChange={(e) => setCityInput(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full glass-input text-sm text-white pl-10 pr-4 py-2.5 rounded-full outline-none transition-all duration-300 font-outfit"
               />
               <IoSearch className="absolute left-3.5 top-3.5 text-slate-400 text-base" />
@@ -215,23 +384,120 @@ function App() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute top-full left-0 right-0 mt-2 glass-panel rounded-2xl overflow-hidden border border-white/10 z-50 shadow-2xl"
+                    className="absolute top-full left-0 right-0 mt-2 glass-panel rounded-2xl overflow-hidden border border-white/10 z-50 shadow-2xl bg-slate-950/95 backdrop-blur-xl"
                   >
-                    <div className="px-3 py-2 text-xs font-semibold text-slate-400 border-b border-white/5 bg-slate-950/40">
-                      Popular Locations
-                    </div>
-                    <div className="grid grid-cols-2 gap-1 p-2 bg-slate-900/90 backdrop-blur-md">
-                      {popularCities.map((city) => (
-                        <button
-                          key={city}
-                          type="button"
-                          onMouseDown={() => fetchWeather(city)}
-                          className="text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-150"
-                        >
-                          {city}
-                        </button>
-                      ))}
-                    </div>
+                    {!cityInput.trim() ? (
+                      <>
+                        {/* Recent Searches */}
+                        {searchHistory.length > 0 && (
+                          <>
+                            <div className="px-4 py-2.5 text-xs font-bold text-slate-400 border-b border-white/5 bg-white/[0.02] tracking-wider uppercase flex justify-between items-center">
+                              <span>Recent Searches</span>
+                              <button
+                                type="button"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  clearAllHistory();
+                                }}
+                                className="text-[10px] text-blue-400 hover:text-blue-300 font-semibold transition-all duration-150 uppercase"
+                              >
+                                Clear All
+                              </button>
+                            </div>
+                            <div className="flex flex-col gap-0.5 p-1.5 border-b border-white/5 bg-slate-900/95">
+                              {searchHistory.map((city) => (
+                                <div
+                                  key={city}
+                                  className="group flex items-center justify-between px-3 py-1.5 text-xs rounded-xl hover:bg-white/5 transition-all duration-150"
+                                >
+                                  <button
+                                    type="button"
+                                    onMouseDown={() => {
+                                      setCityInput(city);
+                                      setCurrentCity(city);
+                                      fetchWeather(city, true);
+                                    }}
+                                    className="text-left text-slate-300 hover:text-white font-medium flex-grow truncate"
+                                  >
+                                    {city}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      deleteHistoryItem(city);
+                                    }}
+                                    className="text-slate-500 hover:text-red-400 px-2 py-0.5 rounded text-sm transition-all duration-150 font-bold"
+                                    title="Remove from history"
+                                  >
+                                    &times;
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        <div className="px-4 py-2.5 text-xs font-bold text-slate-400 border-b border-white/5 bg-white/[0.02] tracking-wider uppercase">
+                          Popular Locations
+                        </div>
+                        <div className="grid grid-cols-2 gap-1 p-2 bg-slate-900/90 backdrop-blur-md">
+                          {popularCities.map((city) => (
+                            <button
+                              key={city}
+                              type="button"
+                              onMouseDown={() => {
+                                setCityInput(city);
+                                setCurrentCity(city);
+                                fetchWeather(city, true);
+                              }}
+                              className="text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-150"
+                            >
+                              {city}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="px-4 py-2.5 text-xs font-bold text-slate-400 border-b border-white/5 bg-white/[0.02] tracking-wider uppercase">
+                          Suggestions
+                        </div>
+                        <div className="max-h-64 overflow-y-auto p-1.5 flex flex-col gap-0.5 scrollbar-thin bg-slate-900/90 backdrop-blur-md">
+                          {suggestions.length > 0 ? (
+                            suggestions.map((city, idx) => (
+                              <button
+                                key={city}
+                                type="button"
+                                onMouseDown={() => {
+                                  setCityInput(city);
+                                  setCurrentCity(city);
+                                  fetchWeather(city, true);
+                                }}
+                                onMouseEnter={() => setActiveSuggestionIndex(idx)}
+                                className={`flex items-center justify-between text-left px-3.5 py-2.5 text-xs rounded-xl transition-all duration-150 border-l-2 ${
+                                  activeSuggestionIndex === idx
+                                    ? 'bg-blue-600/20 text-white border-blue-500 font-semibold'
+                                    : 'text-slate-300 hover:text-white hover:bg-white/5 border-transparent'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400/70" />
+                                  <span>{city}</span>
+                                </div>
+                                <span className="text-[10px] uppercase font-bold text-slate-500 bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
+                                  {cityCountryMapping[city] || 'GL'}
+                                </span>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-4 py-6 text-center text-xs text-slate-400 font-medium">
+                              No matching city found.
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -240,10 +506,23 @@ function App() {
             {/* Geolocation Button */}
             <button
               onClick={handleLocationFetch}
-              className="p-3 rounded-full glass-panel hover:bg-blue-600/20 hover:border-blue-500/30 text-blue-400 transition-all duration-300 shadow-md"
+              className="p-3 rounded-full glass-panel hover:bg-blue-600/20 hover:border-blue-500/30 text-blue-400 transition-all duration-300 shadow-md cursor-pointer"
               title="Locate me"
             >
               <IoLocation className="text-lg" />
+            </button>
+
+            {/* Theme Toggle Button */}
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="p-3 rounded-full glass-panel hover:bg-blue-600/20 hover:border-blue-500/30 text-blue-400 transition-all duration-300 shadow-md flex items-center justify-center cursor-pointer"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? (
+                <IoSunny className="text-lg text-amber-500 transition-transform duration-300 hover:rotate-90" />
+              ) : (
+                <IoMoon className="text-lg transition-transform duration-300 hover:scale-110" />
+              )}
             </button>
 
             {/* C/F Unit Switcher */}
@@ -286,26 +565,7 @@ function App() {
       {/* Main Dashboard Layout */}
       <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-grow z-10">
         
-        {/* Banner indicating demo data */}
-        {weatherData?.isMock && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 rounded-2xl glass-panel border-amber-500/20 bg-amber-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
-                <IoInformationCircle size={22} />
-              </div>
-              <div>
-                <h4 className="font-outfit font-semibold text-sm text-amber-200">Simulation &amp; Demo Mode Active</h4>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Currently showcasing simulated data. To activate real-time local updates, edit the <code className="bg-slate-950/60 px-1 py-0.5 rounded text-amber-400 font-mono">.env</code> file in your workspace root and set <code className="bg-slate-950/60 px-1 py-0.5 rounded text-amber-400 font-mono">VITE_WEATHER_API_KEY</code>.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
+
 
         {loading ? (
           /* Sleek Loader Skeleton */
