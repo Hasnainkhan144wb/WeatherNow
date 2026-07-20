@@ -24,6 +24,7 @@ import { WeatherChart } from './components/WeatherChart';
 import { FavoritesWidget } from './components/FavoritesWidget';
 import { WeatherIcon } from './components/WeatherIcon';
 import { WeatherMap } from './components/WeatherMap';
+import { WeatherAlerts } from './components/WeatherAlerts';
 
 const cityCountryMapping = {
   // Pakistan
@@ -55,6 +56,17 @@ const cityCountryMapping = {
   'Sydney': 'AU', 'Melbourne': 'AU', 'Auckland': 'NZ',
   'Cape Town': 'ZA', 'Cairo': 'EG', 'Istanbul': 'TR', 'Moscow': 'RU',
   'Bangkok': 'TH', 'Kuala Lumpur': 'MY', 'Jakarta': 'ID'
+};
+
+const getRainColorClass = (prob) => {
+  if (prob === undefined || prob === null || isNaN(prob)) {
+    return 'text-slate-400 bg-white/5 border-white/10';
+  }
+  if (prob <= 20) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+  if (prob <= 40) return 'text-sky-400 bg-sky-500/10 border-sky-500/20';
+  if (prob <= 60) return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+  if (prob <= 80) return 'text-orange-400 bg-orange-500/10 border-orange-500/20';
+  return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
 };
 
 function App() {
@@ -207,6 +219,10 @@ function App() {
       setShowSearchSuggestions(false);
 
       toast.success(`Updated weather for ${data.city}!`);
+      if (data.alerts && data.alerts.length > 0) {
+        const severeAlert = data.alerts.find(a => a.severity === 'Extreme' || a.severity === 'High') || data.alerts[0];
+        toast.error(`⚠ ${severeAlert.event} issued for ${data.city}!`, { duration: 5000 });
+      }
       if (saveToHistoryFlag) {
         saveToHistory(data.fullName || data.city);
       }
@@ -239,6 +255,10 @@ function App() {
           setCurrentCity(data.city);
           setCityInput(data.city);
           toast.success(`Current location detected successfully.\nShowing weather for ${data.fullName || data.city}.`, { id: 'geo' });
+          if (data.alerts && data.alerts.length > 0) {
+            const severeAlert = data.alerts.find(a => a.severity === 'Extreme' || a.severity === 'High') || data.alerts[0];
+            toast.error(`⚠ ${severeAlert.event} issued for your area!`, { duration: 5000 });
+          }
           saveToHistory(data.fullName || data.city);
         } catch (e) {
           if (!navigator.onLine) {
@@ -606,43 +626,12 @@ function App() {
           weatherData && (
             <div className="flex flex-col gap-6 mt-4">
 
-              {/* Severe Weather Alerts (If any) */}
-              <AnimatePresence>
-                {weatherData.alerts && weatherData.alerts.length > 0 && (
-                  <motion.div
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.95, opacity: 0 }}
-                    className="p-5 rounded-3xl bg-red-950/40 border border-red-500/30 relative overflow-hidden"
-                  >
-                    {/* Pulsing indicator */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
-
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-red-500/20 text-red-400 rounded-2xl animate-pulse">
-                        <IoAlertCircle size={26} />
-                      </div>
-                      <div className="flex-grow">
-                        <div className="flex items-center gap-2">
-                          <span className="font-outfit font-extrabold text-sm uppercase tracking-wider text-red-400">
-                            {weatherData.alerts[0].severity} alert
-                          </span>
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping" />
-                        </div>
-                        <h3 className="font-outfit font-bold text-lg text-white mt-1">
-                          {weatherData.alerts[0].event}
-                        </h3>
-                        <p className="text-sm text-red-200/80 mt-1.5 leading-relaxed">
-                          {weatherData.alerts[0].description}
-                        </p>
-                        <span className="inline-block text-[11px] text-red-400/60 font-semibold mt-3">
-                          Issued by {weatherData.alerts[0].sender}
-                        </span>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Favorite Cities Section */}
+              <FavoritesWidget
+                currentCity={weatherData.city}
+                onSelectCity={fetchWeather}
+                activeUnit={activeUnit}
+              />
 
               {/* Main Weather Information Panel */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -772,25 +761,34 @@ function App() {
 
                   <div className="flex flex-col gap-3 flex-grow justify-between">
                     {weatherData.daily.map((day, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-sm py-1.5 border-b border-white/5 last:border-0">
+                      <div key={idx} className="flex items-center justify-between text-sm py-2 border-b border-white/5 last:border-0 gap-1.5">
                         {/* Day Name */}
-                        <span className="w-20 font-medium text-slate-300 truncate">
+                        <span className="w-16 sm:w-20 font-medium text-slate-300 truncate">
                           {day.day}
                         </span>
 
                         {/* Condition Icon */}
-                        <div className="flex items-center gap-2 justify-center w-8">
+                        <div className="flex items-center justify-center w-6">
                           <WeatherIcon condition={day.condition} size={22} />
                         </div>
 
+                        {/* Chance of Rain Badge */}
+                        <div 
+                          className={`px-2 py-0.5 rounded-full text-[11px] font-extrabold border flex items-center gap-1 transition-all cursor-help ${getRainColorClass(day.rainChance)}`}
+                          title="Chance of Rain"
+                        >
+                          <span>🌧</span>
+                          <span>{day.rainChance !== undefined && day.rainChance !== null ? `${day.rainChance}%` : 'N/A'}</span>
+                        </div>
+
                         {/* Temperature Bar comparison */}
-                        <div className="flex items-center gap-2 justify-end">
-                          <span className="text-xs text-slate-400 w-6 text-right font-medium">
+                        <div className="flex items-center gap-1.5 sm:gap-2 justify-end">
+                          <span className="text-xs text-slate-400 w-5 sm:w-6 text-right font-medium">
                             {day.tempMin}°
                           </span>
 
                           {/* Visual slider representing difference */}
-                          <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden relative">
+                          <div className="w-10 sm:w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden relative hidden xs:block">
                             <div
                               className="absolute h-full rounded-full bg-gradient-to-r from-sky-400 to-rose-400"
                               style={{
@@ -800,7 +798,7 @@ function App() {
                             />
                           </div>
 
-                          <span className="text-xs text-white font-bold w-6 text-right">
+                          <span className="text-xs text-white font-bold w-5 sm:w-6 text-right">
                             {day.tempMax}°
                           </span>
                         </div>
@@ -929,15 +927,15 @@ function App() {
 
               </div>
 
-              {/* Favorites and Clothing recommendations */}
+              {/* Weather Alerts and Clothing recommendations */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* FAVORITES WIDGET (Span 2 columns on larger screens) */}
+                {/* WEATHER ALERTS WIDGET (Span 2 columns on larger screens) */}
                 <div className="lg:col-span-2">
-                  <FavoritesWidget
-                    currentCity={weatherData.city}
-                    onSelectCity={fetchWeather}
-                    activeUnit={activeUnit}
+                  <WeatherAlerts
+                    alerts={weatherData.alerts || []}
+                    cityName={weatherData.city}
+                    fullName={weatherData.fullName || weatherData.city}
                   />
                 </div>
 

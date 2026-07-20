@@ -151,7 +151,7 @@ const fetchWeatherForCoordinates = async (lat, lon, cityName, countryCode, units
 
   // 1. Fetch weather forecast and current weather
   const forecastRes = await axios.get(
-    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m,visibility&hourly=temperature_2m,precipitation_probability,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code,uv_index_max,sunrise,sunset&timezone=auto&forecast_days=7${tempUnitParam}`
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m,visibility&hourly=temperature_2m,precipitation_probability,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code,uv_index_max,sunrise,sunset,precipitation_probability_max&timezone=auto&forecast_days=7${tempUnitParam}`
   );
 
   // 2. Fetch air quality data
@@ -193,12 +193,17 @@ const fetchWeatherForCoordinates = async (lat, lon, cityName, countryCode, units
     const date = new Date(timeStr + 'T00:00:00');
     const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
 
+    const rainProb = forecast.daily.precipitation_probability_max
+      ? Math.round(forecast.daily.precipitation_probability_max[i] ?? 0)
+      : (forecast.daily.precipitation_sum ? Math.min(100, Math.round(forecast.daily.precipitation_sum[i] * 10)) : 0);
+
     daily.push({
       day: i === 0 ? 'Today' : dayName,
       tempMin: Math.round(forecast.daily.temperature_2m_min[i]),
       tempMax: Math.round(forecast.daily.temperature_2m_max[i]),
       condition: mapWmoCodeToCondition(forecast.daily.weather_code[i]).main,
-      humidity: forecast.current.relative_humidity_2m
+      humidity: forecast.current.relative_humidity_2m,
+      rainChance: rainProb
     });
   }
 
@@ -221,27 +226,120 @@ const fetchWeatherForCoordinates = async (lat, lon, cityName, countryCode, units
   const tempCelsius = units === 'imperial'
     ? ((forecast.current.temperature_2m - 32) * 5) / 9
     : forecast.current.temperature_2m;
+  const windKmh = Math.round(forecast.current.wind_speed_10m);
+  const precipitation = forecast.current.precipitation || 0;
+  const visibilityKm = Math.round((forecast.current.visibility || 10000) / 1000);
+  const uvMax = Math.round(forecast.daily.uv_index_max[0] || 0);
 
+  // 1. Extreme Heat & Heat Wave
   if (tempCelsius >= 38) {
     alerts.push({
-      event: 'Extreme Heat Warning',
-      sender: 'National Weather Intelligence Service',
-      description: `An extreme heatwave is currently affecting ${cityName}. Stay indoors, keep cool, and drink plenty of water.`,
-      severity: 'Extreme'
+      id: 'heat-extreme',
+      event: '🔥 Extreme Heat Warning',
+      icon: '🔥',
+      severity: 'Extreme',
+      description: `Dangerous heatwave in ${cityName} with temperatures reaching ${Math.round(tempCelsius)}°C. Stay indoors, avoid direct sunlight, and remain hydrated.`,
+      time: 'Issued today • Active'
     });
-  } else if (conditionGroup.main === 'Thunderstorm') {
+  } else if (tempCelsius >= 34) {
     alerts.push({
-      event: 'Severe Thunderstorm Watch',
-      sender: 'National Weather Intelligence Service',
-      description: 'Severe weather systems capable of generating lightning, heavy rain, and microbursts are in the area.',
-      severity: 'Severe'
+      id: 'heat-wave',
+      event: '🌡 Heat Wave Advisory',
+      icon: '🌡',
+      severity: 'High',
+      description: `Elevated temperatures in ${cityName} causing high heat stress (${Math.round(tempCelsius)}°C). Limit strenuous outdoor activities.`,
+      time: 'Issued today • Active'
     });
-  } else if (tempCelsius <= 0) {
+  }
+
+  // 2. Thunderstorm & Heavy Rain
+  if (conditionGroup.main === 'Thunderstorm') {
     alerts.push({
-      event: 'Freeze Warning',
-      sender: 'National Weather Intelligence Service',
-      description: 'Sub-freezing temperatures are expected. Protect tender vegetation and prevent pipe freeze hazards.',
-      severity: 'Moderate'
+      id: 'thunderstorm',
+      event: '⛈ Severe Thunderstorm Warning',
+      icon: '⛈',
+      severity: 'High',
+      description: `Severe thunderstorm system active near ${cityName}. Expect gusty winds, frequent lightning, and localized heavy downpours.`,
+      time: 'Issued recently • Active'
+    });
+  }
+
+  if (conditionGroup.main === 'Rain' || precipitation > 5) {
+    alerts.push({
+      id: 'heavy-rain',
+      event: '⚠ Heavy Rain Warning',
+      icon: '⚠',
+      severity: 'High',
+      description: `Heavy rainfall expected during the next 6 hours in ${cityName}. Stay indoors and avoid unnecessary road travel.`,
+      time: 'Issued recently • Active'
+    });
+
+    if (precipitation > 10) {
+      alerts.push({
+        id: 'flood-watch',
+        event: '🌊 Urban Flood Watch',
+        icon: '🌊',
+        severity: 'Extreme',
+        description: `Rapid accumulation of rainwater may cause waterlogging and urban flooding in low-lying areas of ${cityName}.`,
+        time: 'Issued recently • Active'
+      });
+    }
+  }
+
+  // 3. High Wind Advisory
+  if (windKmh >= 25) {
+    alerts.push({
+      id: 'high-wind',
+      event: '🌪 High Wind Advisory',
+      icon: '🌬',
+      severity: 'Moderate',
+      description: `Strong surface winds of ${windKmh} km/h detected in ${cityName}. Secure loose outdoor items and exercise caution while driving.`,
+      time: 'Issued today • Active'
+    });
+  }
+
+  // 4. Fog Advisory
+  if (visibilityKm <= 2 || conditionGroup.main === 'Atmosphere') {
+    alerts.push({
+      id: 'dense-fog',
+      event: '🌫 Dense Fog Advisory',
+      icon: '🌫',
+      severity: 'Moderate',
+      description: `Reduced visibility (${visibilityKm} km) due to fog/haze in ${cityName}. Drive slowly with fog lights enabled.`,
+      time: 'Issued early morning • Active'
+    });
+  }
+
+  // 5. Cold Wave / Freeze Warning
+  if (tempCelsius <= 0) {
+    alerts.push({
+      id: 'freeze-warning',
+      event: '❄ Freeze Warning',
+      icon: '❄',
+      severity: 'High',
+      description: `Sub-freezing temperatures (${Math.round(tempCelsius)}°C) in ${cityName}. Protect pipes and vulnerable crops from frost damage.`,
+      time: 'Issued today • Active'
+    });
+  } else if (tempCelsius <= 5) {
+    alerts.push({
+      id: 'cold-wave',
+      event: '🥶 Cold Wave Warning',
+      icon: '🥶',
+      severity: 'Moderate',
+      description: `Sharply lower temperatures in ${cityName} (${Math.round(tempCelsius)}°C). Dress in layers and keep warm.`,
+      time: 'Issued today • Active'
+    });
+  }
+
+  // 6. Extreme UV Alert
+  if (uvMax >= 8) {
+    alerts.push({
+      id: 'uv-extreme',
+      event: '☀ High UV Warning',
+      icon: '☀',
+      severity: 'Moderate',
+      description: `Very high UV Index level (${uvMax}/10) expected today in ${cityName}. Wear SPF 30+ sunscreen, sunglasses, and protective headwear.`,
+      time: 'Peak hours 11:00 AM - 4:00 PM'
     });
   }
 
