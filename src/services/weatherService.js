@@ -385,24 +385,34 @@ const fetchWeatherForCoordinates = async (lat, lon, cityName, countryCode, units
  * Fetch Weather Data by City Name (with forward geocoding)
  */
 export const getWeatherData = async (city, units = 'metric') => {
-  const geoRes = await axios.get(
-    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
-  );
+  try {
+    const geoRes = await axios.get(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
+    );
 
-  if (!geoRes.data.results || geoRes.data.results.length === 0) {
-    throw new Error('City not found');
+    if (!geoRes.data.results || geoRes.data.results.length === 0) {
+      const err = new Error('City not found');
+      err.status = 404;
+      err.type = 'NOT_FOUND';
+      throw err;
+    }
+
+    const result = geoRes.data.results[0];
+    const countryCode = result.country_code || result.country || 'LOC';
+    
+    return await fetchWeatherForCoordinates(
+      result.latitude,
+      result.longitude,
+      result.name,
+      countryCode,
+      units
+    );
+  } catch (error) {
+    if (error.response) {
+      error.status = error.response.status;
+    }
+    throw error;
   }
-
-  const result = geoRes.data.results[0];
-  const countryCode = result.country_code || result.country || 'LOC';
-  
-  return fetchWeatherForCoordinates(
-    result.latitude,
-    result.longitude,
-    result.name,
-    countryCode,
-    units
-  );
 };
 
 /**

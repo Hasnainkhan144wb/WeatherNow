@@ -25,6 +25,7 @@ import { FavoritesWidget } from './components/FavoritesWidget';
 import { WeatherIcon } from './components/WeatherIcon';
 import { WeatherMap } from './components/WeatherMap';
 import { WeatherAlerts } from './components/WeatherAlerts';
+import { ErrorState } from './components/ErrorState';
 
 const cityCountryMapping = {
   // Pakistan
@@ -77,6 +78,8 @@ function App() {
   const [activeUnit, setActiveUnit] = useState('C'); // 'C' or 'F'
   const [localTime, setLocalTime] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const [errorState, setErrorState] = useState(null);
+  const [failedRequest, setFailedRequest] = useState(null);
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('weathernow_theme');
     if (saved) return saved;
@@ -206,9 +209,41 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  const classifyError = (error) => {
+    if (!error) return { type: 'UNKNOWN' };
+    if (error.type === 'LOCATION_DENIED' || error.type === 'NOT_FOUND') return error;
+
+    const status = error.status || error.response?.status;
+    const msg = (error.message || '').toLowerCase();
+
+    if (status === 404 || msg.includes('city not found') || msg.includes('404')) {
+      return { type: 'NOT_FOUND', status: 404, message: error.message };
+    }
+    if (status === 429 || msg.includes('429')) {
+      return { type: 'RATE_LIMIT', status: 429, message: error.message };
+    }
+    if (status === 400 || status === 401 || status === 403 || msg.includes('401') || msg.includes('403')) {
+      return { type: 'UNAUTHORIZED', status, message: error.message };
+    }
+    if (status >= 500 || msg.includes('500') || msg.includes('502') || msg.includes('503')) {
+      return { type: 'API_ERROR', status, message: error.message };
+    }
+    if (error.code === 'ECONNABORTED' || msg.includes('timeout') || msg.includes('timed out')) {
+      return { type: 'TIMEOUT', message: error.message };
+    }
+    if (msg.includes('network error') || msg.includes('failed to fetch') || !navigator.onLine) {
+      return { type: 'NETWORK_ERROR', message: error.message };
+    }
+    if (msg.includes('permission denied') || msg.includes('location')) {
+      return { type: 'LOCATION_DENIED', message: error.message };
+    }
+    return { type: 'UNKNOWN', message: error.message };
+  };
+
   // Fetch weather data
   const fetchWeather = async (city, saveToHistoryFlag = false) => {
     setLoading(true);
+    setErrorState(null);
     try {
       const units = activeUnit === 'C' ? 'metric' : 'imperial';
       const cleanCityName = city === 'Hyderabad (India)' ? 'Hyderabad, India' : city;
@@ -217,6 +252,8 @@ function App() {
       setCurrentCity(data.city);
       setCityInput(data.city);
       setShowSearchSuggestions(false);
+      setErrorState(null);
+      setFailedRequest(null);
 
       toast.success(`Updated weather for ${data.city}!`);
       if (data.alerts && data.alerts.length > 0) {
@@ -227,8 +264,9 @@ function App() {
         saveToHistory(data.fullName || data.city);
       }
     } catch (error) {
-      toast.error('Could not fetch weather data. Please check spelling.');
-      setCityInput(currentCity);
+      const classified = classifyError(error);
+      setErrorState(classified);
+      setFailedRequest({ type: 'city', value: city });
     } finally {
       setLoading(false);
     }
@@ -237,16 +275,19 @@ function App() {
   // Get user location & fetch weather automatically
   const detectLocationAuto = () => {
     if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by your browser.');
-      if (!weatherData) fetchWeather(currentCity);
+      setErrorState({ type: 'LOCATION_DENIED', message: 'Geolocation is not supported.' });
+      setFailedRequest({ type: 'geo' });
+      if (!weatherData) setLoading(false);
       return;
     }
 
     toast.loading('Detecting your location...', { id: 'geo' });
+    setLoading(true);
+    setErrorState(null);
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        setLoading(true);
         localStorage.setItem('locationPermission', 'granted');
         try {
           const units = activeUnit === 'C' ? 'metric' : 'imperial';
@@ -254,6 +295,8 @@ function App() {
           setWeatherData(data);
           setCurrentCity(data.city);
           setCityInput(data.city);
+          setErrorState(null);
+          setFailedRequest(null);
           toast.success(`Current location detected successfully.\nShowing weather for ${data.fullName || data.city}.`, { id: 'geo' });
           if (data.alerts && data.alerts.length > 0) {
             const severeAlert = data.alerts.find(a => a.severity === 'Extreme' || a.severity === 'High') || data.alerts[0];
@@ -261,30 +304,48 @@ function App() {
           }
           saveToHistory(data.fullName || data.city);
         } catch (e) {
-          if (!navigator.onLine) {
-            toast.error('Unable to fetch weather data.\nPlease check your internet connection.', { id: 'geo' });
-          } else {
-            toast.error('Unable to determine your current location.\nPlease search for a city manually.', { id: 'geo' });
-          }
-          if (!weatherData) fetchWeather(currentCity);
+          toast.dismiss('geo');
+          const classified = classifyError(e);
+          setErrorState(classified);
+          setFailedRequest({ type: 'geo' });
         } finally {
           setLoading(false);
         }
       },
       (error) => {
+        toast.dismiss('geo');
         if (error.code === error.PERMISSION_DENIED) {
           localStorage.setItem('locationPermission', 'denied');
-          toast.error('Location permission denied.\nPlease search for a city manually.', { id: 'geo' });
+          setErrorState({ type: 'LOCATION_DENIED', message: 'Location permission denied.' });
         } else {
-          toast.error('Unable to determine your current location.\nPlease search for a city manually.', { id: 'geo' });
+          setErrorState(classifyError(error));
         }
-        if (!weatherData) {
-          fetchWeather(currentCity);
-        } else {
-          setLoading(false);
-        }
+        setFailedRequest({ type: 'geo' });
+        setLoading(false);
       }
     );
+  };
+
+  const handleRetry = () => {
+    if (failedRequest?.type === 'geo') {
+      detectLocationAuto();
+    } else if (failedRequest?.value) {
+      fetchWeather(failedRequest.value, false);
+    } else {
+      fetchWeather(currentCity || 'Lahore', false);
+    }
+  };
+
+  const handleFocusSearch = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => {
+      const searchInput = document.querySelector('input[type="text"]');
+      if (searchInput) {
+        searchInput.focus();
+        setCityInput('');
+        setShowSearchSuggestions(true);
+      }
+    }, 150);
   };
 
   const handleLocationFetch = () => {
@@ -622,6 +683,12 @@ function App() {
             <div className="h-[380px] bg-slate-900/30 rounded-3xl border border-white/5" />
             <div className="lg:col-span-3 h-[200px] bg-slate-900/30 rounded-3xl border border-white/5" />
           </div>
+        ) : errorState ? (
+          <ErrorState
+            error={errorState}
+            onRetry={handleRetry}
+            onSearchCity={handleFocusSearch}
+          />
         ) : (
           weatherData && (
             <div className="flex flex-col gap-6 mt-4">
