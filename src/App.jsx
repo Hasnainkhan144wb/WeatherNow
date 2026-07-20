@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
-import { 
-  IoSearch, 
-  IoLocation, 
-  IoThermometer, 
-  IoEye, 
+import {
+  IoSearch,
+  IoLocation,
+  IoThermometer,
+  IoEye,
   IoSpeedometer,
   IoAlertCircle,
   IoShirt,
-  IoSunny, 
+  IoSunny,
   IoMoon,
   IoTrendingUp,
   IoCloseCircle,
@@ -17,11 +17,13 @@ import {
   IoMap
 } from 'react-icons/io5';
 import { BsWind } from 'react-icons/bs';
+import { FaGithub, FaLinkedin, FaGlobe } from 'react-icons/fa';
 
 import { getWeatherData, getWeatherDataByCoords, getClothingRecommendation } from './services/weatherService';
 import { WeatherChart } from './components/WeatherChart';
 import { FavoritesWidget } from './components/FavoritesWidget';
 import { WeatherIcon } from './components/WeatherIcon';
+import { WeatherMap } from './components/WeatherMap';
 
 const cityCountryMapping = {
   // Pakistan
@@ -152,12 +154,12 @@ function App() {
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveSuggestionIndex((prev) => 
+      setActiveSuggestionIndex((prev) =>
         prev < suggestions.length - 1 ? prev + 1 : prev
       );
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setActiveSuggestionIndex((prev) => 
+      setActiveSuggestionIndex((prev) =>
         prev > 0 ? prev - 1 : prev
       );
     } else if (e.key === 'Enter') {
@@ -177,13 +179,13 @@ function App() {
   // Update clock every second
   useEffect(() => {
     const updateTime = () => {
-      const options = { 
-        weekday: 'short', 
-        month: 'short', 
-        day: 'numeric', 
-        hour: '2-digit', 
+      const options = {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit' 
+        second: '2-digit'
       };
       setLocalTime(new Date().toLocaleDateString('en-US', options));
     };
@@ -203,7 +205,7 @@ function App() {
       setCurrentCity(data.city);
       setCityInput(data.city);
       setShowSearchSuggestions(false);
-      
+
       toast.success(`Updated weather for ${data.city}!`);
       if (saveToHistoryFlag) {
         saveToHistory(data.fullName || data.city);
@@ -216,10 +218,11 @@ function App() {
     }
   };
 
-  // Get user location
-  const handleLocationFetch = () => {
+  // Get user location & fetch weather automatically
+  const detectLocationAuto = () => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser.');
+      if (!weatherData) fetchWeather(currentCity);
       return;
     }
 
@@ -228,34 +231,62 @@ function App() {
       async (position) => {
         const { latitude, longitude } = position.coords;
         setLoading(true);
+        localStorage.setItem('locationPermission', 'granted');
         try {
           const units = activeUnit === 'C' ? 'metric' : 'imperial';
           const data = await getWeatherDataByCoords(latitude, longitude, units);
           setWeatherData(data);
           setCurrentCity(data.city);
-          setCityInput(data.fullName || data.city);
-          toast.success(`Found location: ${data.fullName || data.city}!`, { id: 'geo' });
+          setCityInput(data.city);
+          toast.success(`Current location detected successfully.\nShowing weather for ${data.fullName || data.city}.`, { id: 'geo' });
           saveToHistory(data.fullName || data.city);
         } catch (e) {
-          toast.error('Unable to detect your current location.\nPlease search for a city manually.', { id: 'geo' });
+          if (!navigator.onLine) {
+            toast.error('Unable to fetch weather data.\nPlease check your internet connection.', { id: 'geo' });
+          } else {
+            toast.error('Unable to determine your current location.\nPlease search for a city manually.', { id: 'geo' });
+          }
+          if (!weatherData) fetchWeather(currentCity);
         } finally {
           setLoading(false);
         }
       },
       (error) => {
         if (error.code === error.PERMISSION_DENIED) {
-          toast.error('Location permission denied.\nPlease enable location access to use this feature.', { id: 'geo' });
+          localStorage.setItem('locationPermission', 'denied');
+          toast.error('Location permission denied.\nPlease search for a city manually.', { id: 'geo' });
         } else {
-          toast.error('Unable to detect your current location.\nPlease search for a city manually.', { id: 'geo' });
+          toast.error('Unable to determine your current location.\nPlease search for a city manually.', { id: 'geo' });
         }
-        setLoading(false);
+        if (!weatherData) {
+          fetchWeather(currentCity);
+        } else {
+          setLoading(false);
+        }
       }
     );
   };
 
+  const handleLocationFetch = () => {
+    detectLocationAuto();
+  };
+
   // Initial fetch
   useEffect(() => {
-    fetchWeather(currentCity);
+    if (weatherData) {
+      fetchWeather(currentCity);
+      return;
+    }
+
+    const permission = localStorage.getItem('locationPermission');
+    if (permission === 'granted') {
+      detectLocationAuto();
+    } else if (permission === 'denied') {
+      fetchWeather(currentCity);
+    } else {
+      // First visit: trigger permission prompt automatically
+      detectLocationAuto();
+    }
   }, [activeUnit]);
 
   // Handle unit switch
@@ -315,11 +346,11 @@ function App() {
     }
   };
 
-  const clothingRec = weatherData 
+  const clothingRec = weatherData
     ? getClothingRecommendation(
-        activeUnit === 'C' ? weatherData.current.temp : Math.round(((weatherData.current.temp - 32) * 5) / 9), 
-        weatherData.current.condition
-      ) 
+      activeUnit === 'C' ? weatherData.current.temp : Math.round(((weatherData.current.temp - 32) * 5) / 9),
+      weatherData.current.condition
+    )
     : null;
 
   return (
@@ -327,7 +358,7 @@ function App() {
       {/* Decorative Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 blur-[120px] pointer-events-none animate-pulse-slow" />
       <div className="absolute bottom-[20%] right-[-10%] w-[35%] h-[35%] rounded-full bg-purple-500/10 blur-[120px] pointer-events-none animate-pulse-slow" />
-      
+
       <Toaster position="top-right" />
 
       {/* Landing Navbar / Header */}
@@ -376,7 +407,7 @@ function App() {
                 className="w-full glass-input text-sm text-white pl-10 pr-4 py-2.5 rounded-full outline-none transition-all duration-300 font-outfit"
               />
               <IoSearch className="absolute left-3.5 top-3.5 text-slate-400 text-base" />
-              
+
               {/* Autocomplete Dropdown */}
               <AnimatePresence>
                 {showSearchSuggestions && (
@@ -475,11 +506,10 @@ function App() {
                                   fetchWeather(city, true);
                                 }}
                                 onMouseEnter={() => setActiveSuggestionIndex(idx)}
-                                className={`flex items-center justify-between text-left px-3.5 py-2.5 text-xs rounded-xl transition-all duration-150 border-l-2 ${
-                                  activeSuggestionIndex === idx
+                                className={`flex items-center justify-between text-left px-3.5 py-2.5 text-xs rounded-xl transition-all duration-150 border-l-2 ${activeSuggestionIndex === idx
                                     ? 'bg-blue-600/20 text-white border-blue-500 font-semibold'
                                     : 'text-slate-300 hover:text-white hover:bg-white/5 border-transparent'
-                                }`}
+                                  }`}
                               >
                                 <div className="flex items-center gap-2">
                                   <span className="w-1.5 h-1.5 rounded-full bg-blue-400/70" />
@@ -529,21 +559,19 @@ function App() {
             <div className="flex bg-slate-900/50 border border-white/10 rounded-full p-1 shadow-inner">
               <button
                 onClick={() => toggleUnit('C')}
-                className={`w-8 h-8 rounded-full text-xs font-bold transition-all duration-300 ${
-                  activeUnit === 'C'
+                className={`w-8 h-8 rounded-full text-xs font-bold transition-all duration-300 ${activeUnit === 'C'
                     ? 'bg-blue-500 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
-                }`}
+                  }`}
               >
                 °C
               </button>
               <button
                 onClick={() => toggleUnit('F')}
-                className={`w-8 h-8 rounded-full text-xs font-bold transition-all duration-300 ${
-                  activeUnit === 'F'
+                className={`w-8 h-8 rounded-full text-xs font-bold transition-all duration-300 ${activeUnit === 'F'
                     ? 'bg-blue-500 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
-                }`}
+                  }`}
               >
                 °F
               </button>
@@ -564,7 +592,7 @@ function App() {
 
       {/* Main Dashboard Layout */}
       <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-grow z-10">
-        
+
 
 
         {loading ? (
@@ -577,7 +605,7 @@ function App() {
         ) : (
           weatherData && (
             <div className="flex flex-col gap-6 mt-4">
-              
+
               {/* Severe Weather Alerts (If any) */}
               <AnimatePresence>
                 {weatherData.alerts && weatherData.alerts.length > 0 && (
@@ -589,7 +617,7 @@ function App() {
                   >
                     {/* Pulsing indicator */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
-                    
+
                     <div className="flex items-start gap-4">
                       <div className="p-3 bg-red-500/20 text-red-400 rounded-2xl animate-pulse">
                         <IoAlertCircle size={26} />
@@ -618,7 +646,7 @@ function App() {
 
               {/* Main Weather Information Panel */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
+
                 {/* HERO CARD: Current weather display */}
                 <div className="lg:col-span-2 glass-panel rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between min-h-[380px] shadow-xl">
                   {/* Atmospheric Weather Overlay */}
@@ -654,9 +682,9 @@ function App() {
                   <div className="flex flex-col md:flex-row items-center justify-between gap-6 my-6 z-10">
                     <div className="flex items-center gap-6">
                       <div className="animate-float">
-                        <WeatherIcon 
-                          condition={weatherData.current.condition} 
-                          size={110} 
+                        <WeatherIcon
+                          condition={weatherData.current.condition}
+                          size={110}
                           className="filter drop-shadow-[0_8px_16px_rgba(59,130,246,0.3)]"
                         />
                       </div>
@@ -760,14 +788,14 @@ function App() {
                           <span className="text-xs text-slate-400 w-6 text-right font-medium">
                             {day.tempMin}°
                           </span>
-                          
+
                           {/* Visual slider representing difference */}
                           <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden relative">
-                            <div 
-                              className="absolute h-full rounded-full bg-gradient-to-r from-sky-400 to-rose-400" 
-                              style={{ 
-                                left: '20%', 
-                                right: '20%' 
+                            <div
+                              className="absolute h-full rounded-full bg-gradient-to-r from-sky-400 to-rose-400"
+                              style={{
+                                left: '20%',
+                                right: '20%'
                               }}
                             />
                           </div>
@@ -781,6 +809,9 @@ function App() {
                   </div>
                 </div>
               </div>
+
+              {/* Interactive Leaflet Weather Map Section */}
+              <WeatherMap weatherData={weatherData} activeUnit={activeUnit} theme={theme} />
 
               {/* Lower Section: Charts, AQI, Clothing recommendations & Favorites */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -827,7 +858,7 @@ function App() {
                         </span>
                         <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">AQI</span>
                       </div>
-                      
+
                       {/* Title description */}
                       <div>
                         <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold font-outfit border uppercase ${weatherData.aqi.color}`}>
@@ -848,9 +879,9 @@ function App() {
                         <span className="text-white font-bold">{weatherData.aqi.pm25} µg/m³</span>
                       </div>
                       <div className="w-full h-1 bg-slate-800 rounded-full mt-1.5 overflow-hidden">
-                        <div 
-                          className="h-full bg-emerald-500 rounded-full" 
-                          style={{ width: `${Math.min(100, (weatherData.aqi.pm25 / 75) * 100)}%` }} 
+                        <div
+                          className="h-full bg-emerald-500 rounded-full"
+                          style={{ width: `${Math.min(100, (weatherData.aqi.pm25 / 75) * 100)}%` }}
                         />
                       </div>
                     </div>
@@ -861,9 +892,9 @@ function App() {
                         <span className="text-white font-bold">{weatherData.aqi.pm10} µg/m³</span>
                       </div>
                       <div className="w-full h-1 bg-slate-800 rounded-full mt-1.5 overflow-hidden">
-                        <div 
-                          className="h-full bg-emerald-500 rounded-full" 
-                          style={{ width: `${Math.min(100, (weatherData.aqi.pm10 / 150) * 100)}%` }} 
+                        <div
+                          className="h-full bg-emerald-500 rounded-full"
+                          style={{ width: `${Math.min(100, (weatherData.aqi.pm10 / 150) * 100)}%` }}
                         />
                       </div>
                     </div>
@@ -874,9 +905,9 @@ function App() {
                         <span className="text-white font-bold">{weatherData.aqi.o3} µg/m³</span>
                       </div>
                       <div className="w-full h-1 bg-slate-800 rounded-full mt-1.5 overflow-hidden">
-                        <div 
-                          className="h-full bg-yellow-500 rounded-full" 
-                          style={{ width: `${Math.min(100, (weatherData.aqi.o3 / 180) * 100)}%` }} 
+                        <div
+                          className="h-full bg-yellow-500 rounded-full"
+                          style={{ width: `${Math.min(100, (weatherData.aqi.o3 / 180) * 100)}%` }}
                         />
                       </div>
                     </div>
@@ -887,9 +918,9 @@ function App() {
                         <span className="text-white font-bold">{weatherData.aqi.no2} µg/m³</span>
                       </div>
                       <div className="w-full h-1 bg-slate-800 rounded-full mt-1.5 overflow-hidden">
-                        <div 
-                          className="h-full bg-emerald-500 rounded-full" 
-                          style={{ width: `${Math.min(100, (weatherData.aqi.no2 / 200) * 100)}%` }} 
+                        <div
+                          className="h-full bg-emerald-500 rounded-full"
+                          style={{ width: `${Math.min(100, (weatherData.aqi.no2 / 200) * 100)}%` }}
                         />
                       </div>
                     </div>
@@ -900,13 +931,13 @@ function App() {
 
               {/* Favorites and Clothing recommendations */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
+
                 {/* FAVORITES WIDGET (Span 2 columns on larger screens) */}
                 <div className="lg:col-span-2">
-                  <FavoritesWidget 
-                    currentCity={weatherData.city} 
-                    onSelectCity={fetchWeather} 
-                    activeUnit={activeUnit} 
+                  <FavoritesWidget
+                    currentCity={weatherData.city}
+                    onSelectCity={fetchWeather}
+                    activeUnit={activeUnit}
                   />
                 </div>
 
@@ -963,7 +994,7 @@ function App() {
 
               {/* Sun Cycle Details & Astronomy */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                
+
                 <div className="glass-panel rounded-3xl p-5 shadow-lg flex items-center justify-between">
                   <div>
                     <span className="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Sunrise</span>
@@ -1001,7 +1032,7 @@ function App() {
                   </div>
                   {/* Rotating Wind Needle */}
                   <div className="w-10 h-10 rounded-full border border-blue-500/20 bg-blue-500/10 flex items-center justify-center relative">
-                    <div 
+                    <div
                       className="w-1 h-6 bg-blue-400 rounded-full transition-transform duration-500"
                       style={{ transform: `rotate(${weatherData.current.windDeg}deg)` }}
                     />
@@ -1017,11 +1048,43 @@ function App() {
       </main>
 
       {/* SEO Friendly & Aesthetic Footer */}
-      <footer className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 font-medium z-10">
+      <footer className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 pb-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-xs text-slate-500 font-medium z-10">
         <div>
           &copy; {new Date().getFullYear()} WeatherNow. All rights reserved. Created with Vite, React, &amp; Tailwind CSS.
         </div>
-        <div className="flex gap-4">
+
+        {/* Social Media Icons */}
+        <div className="flex items-center justify-center gap-5">
+          <a
+            href="https://github.com/Hasnainkhan144wb"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub"
+            className="w-9 h-9 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/10 hover:scale-110 transition-all duration-300 shadow-sm flex items-center justify-center cursor-pointer"
+          >
+            <FaGithub className="text-base" />
+          </a>
+          <a
+            href="https://www.linkedin.com/in/muhammad-hasnain-khan-60aa11420/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="LinkedIn"
+            className="w-9 h-9 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/10 hover:scale-110 transition-all duration-300 shadow-sm flex items-center justify-center cursor-pointer"
+          >
+            <FaLinkedin className="text-base" />
+          </a>
+          <a
+            href="https://hasnainkhan.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Portfolio Website"
+            className="w-9 h-9 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/10 hover:scale-110 transition-all duration-300 shadow-sm flex items-center justify-center cursor-pointer"
+          >
+            <FaGlobe className="text-base" />
+          </a>
+        </div>
+
+        <div className="flex items-center gap-4">
           <a href="#" className="hover:text-blue-400 transition-colors">Privacy Policy</a>
           <span className="text-white/10">&bull;</span>
           <a href="#" className="hover:text-blue-400 transition-colors">Terms of Service</a>

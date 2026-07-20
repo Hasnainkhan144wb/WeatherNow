@@ -92,6 +92,25 @@ export const getClothingRecommendation = (tempCelsius, condition) => {
  * Reverse geocode latitude and longitude to a city name
  */
 const reverseGeocode = async (lat, lon) => {
+  // 1. Try Open-Meteo Reverse Geocoding API
+  try {
+    const res = await axios.get(
+      `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=en`
+    );
+    if (res.data && res.data.results && res.data.results.length > 0) {
+      const result = res.data.results[0];
+      const city = result.name || result.city || result.admin1;
+      const country = result.country || 'Pakistan';
+      const countryCode = (result.country_code || 'PK').toUpperCase();
+      if (city && city.toLowerCase() !== 'current location') {
+        return { city, country, countryCode };
+      }
+    }
+  } catch (e) {
+    console.warn('Open-Meteo reverse geocoding failed:', e.message);
+  }
+
+  // 2. Try Nominatim Reverse Geocoding API
   try {
     const res = await axios.get(
       `https://nominatim.openstreetmap.org/reverse`,
@@ -102,15 +121,26 @@ const reverseGeocode = async (lat, lon) => {
     );
     if (res.data && res.data.address) {
       const addr = res.data.address;
-      const city = addr.city || addr.town || addr.village || addr.suburb || addr.county || 'Current Location';
-      const country = addr.country || '';
-      const countryCode = (addr.country_code || 'LOC').toUpperCase();
-      return { city, country, countryCode };
+      const city = addr.city || addr.town || addr.village || addr.suburb || addr.county || addr.district || addr.state_district;
+      const country = addr.country || 'Pakistan';
+      const countryCode = (addr.country_code || 'PK').toUpperCase();
+      if (city && city.toLowerCase() !== 'current location') {
+        return { city, country, countryCode };
+      }
     }
   } catch (e) {
-    console.warn('Reverse geocoding failed, falling back to coords name:', e.message);
+    console.warn('Nominatim reverse geocoding failed:', e.message);
   }
-  return { city: 'Current Location', country: '', countryCode: 'LOC' };
+
+  // 3. Smart Proximity Fallback to Pakistani cities (e.g. Vehari, Lahore, Karachi, Islamabad, Multan)
+  let fallbackCity = 'Vehari';
+  if (Math.abs(lat - 31.5497) < 0.8 && Math.abs(lon - 74.3436) < 0.8) fallbackCity = 'Lahore';
+  else if (Math.abs(lat - 24.8607) < 0.8 && Math.abs(lon - 67.0011) < 0.8) fallbackCity = 'Karachi';
+  else if (Math.abs(lat - 33.6844) < 0.8 && Math.abs(lon - 73.0479) < 0.8) fallbackCity = 'Islamabad';
+  else if (Math.abs(lat - 30.1575) < 0.5 && Math.abs(lon - 71.5249) < 0.5) fallbackCity = 'Multan';
+  else if (Math.abs(lat - 30.0452) < 0.8 && Math.abs(lon - 72.3489) < 0.8) fallbackCity = 'Vehari';
+
+  return { city: fallbackCity, country: 'Pakistan', countryCode: 'PK' };
 };
 
 /**
