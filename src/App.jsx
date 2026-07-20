@@ -588,8 +588,8 @@ function App() {
                                 }}
                                 onMouseEnter={() => setActiveSuggestionIndex(idx)}
                                 className={`flex items-center justify-between text-left px-3.5 py-2.5 text-xs rounded-xl transition-all duration-150 border-l-2 ${activeSuggestionIndex === idx
-                                    ? 'bg-blue-600/20 text-white border-blue-500 font-semibold'
-                                    : 'text-slate-300 hover:text-white hover:bg-white/5 border-transparent'
+                                  ? 'bg-blue-600/20 text-white border-blue-500 font-semibold'
+                                  : 'text-slate-300 hover:text-white hover:bg-white/5 border-transparent'
                                   }`}
                               >
                                 <div className="flex items-center gap-2">
@@ -641,8 +641,8 @@ function App() {
               <button
                 onClick={() => toggleUnit('C')}
                 className={`w-8 h-8 rounded-full text-xs font-bold transition-all duration-300 ${activeUnit === 'C'
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
                   }`}
               >
                 °C
@@ -650,8 +650,8 @@ function App() {
               <button
                 onClick={() => toggleUnit('F')}
                 className={`w-8 h-8 rounded-full text-xs font-bold transition-all duration-300 ${activeUnit === 'F'
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
                   }`}
               >
                 °F
@@ -840,7 +840,7 @@ function App() {
                         </div>
 
                         {/* Chance of Rain Badge */}
-                        <div 
+                        <div
                           className={`px-2 py-0.5 rounded-full text-[11px] font-extrabold border flex items-center gap-1 transition-all cursor-help ${getRainColorClass(day.rainChance)}`}
                           title="Chance of Rain"
                         >
@@ -1115,7 +1115,7 @@ function App() {
       {/* SEO Friendly & Aesthetic Footer */}
       <footer className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 pt-8 pb-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-xs text-slate-500 font-medium z-10">
         <div>
-          &copy; {new Date().getFullYear()} WeatherNow. All rights reserved. Created with Vite, React, &amp; Tailwind CSS.
+          &copy; {new Date().getFullYear()} WeatherNow. All rights reserved.
         </div>
 
         {/* Social Media Icons */}
@@ -1139,7 +1139,7 @@ function App() {
             <FaLinkedin className="text-base" />
           </a>
           <a
-            href="https://hasnainkhan.dev"
+            href="https://www.linkedin.com/in/muhammad-hasnain-khan-60aa11420/"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Portfolio Website"
