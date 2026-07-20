@@ -14,7 +14,8 @@ import {
   IoTrendingUp,
   IoCloseCircle,
   IoInformationCircle,
-  IoMap
+  IoMap,
+  IoShareSocial
 } from 'react-icons/io5';
 import { BsWind } from 'react-icons/bs';
 import { FaGithub, FaLinkedin, FaGlobe } from 'react-icons/fa';
@@ -26,6 +27,7 @@ import { WeatherIcon } from './components/WeatherIcon';
 import { WeatherMap } from './components/WeatherMap';
 import { WeatherAlerts } from './components/WeatherAlerts';
 import { ErrorState } from './components/ErrorState';
+import { ShareModal } from './components/ShareModal';
 
 const cityCountryMapping = {
   // Pakistan
@@ -80,6 +82,7 @@ function App() {
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [errorState, setErrorState] = useState(null);
   const [failedRequest, setFailedRequest] = useState(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('weathernow_theme');
     if (saved) return saved;
@@ -711,13 +714,22 @@ function App() {
                   {/* Header info */}
                   <div className="flex justify-between items-start z-10">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h2 className="font-outfit font-extrabold text-3xl text-white">
                           {weatherData.city}
                         </h2>
-                        <span className="text-xs bg-white/10 px-2 py-0.5 rounded text-slate-300 font-bold uppercase border border-white/5 mt-1">
+                        <span className="text-xs bg-white/10 px-2 py-0.5 rounded text-slate-300 font-bold uppercase border border-white/5">
                           {weatherData.country}
                         </span>
+
+                        <button
+                          onClick={() => setIsShareModalOpen(true)}
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold font-outfit bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 cursor-pointer shadow-sm active:scale-95"
+                          title="Share Weather"
+                        >
+                          <IoShareSocial className="text-sm" />
+                          <span>📤 Share</span>
+                        </button>
                       </div>
                       <p className="text-xs text-slate-400 mt-1 font-medium">
                         Coordinates: {weatherData.coordinates.lat.toFixed(2)}°N, {weatherData.coordinates.lon.toFixed(2)}°E
@@ -1157,6 +1169,14 @@ function App() {
           <a href="#" className="hover:text-blue-400 transition-colors font-semibold">Documentation</a>
         </div>
       </footer>
+
+      {/* Share Weather Modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        weatherData={weatherData}
+        activeUnit={activeUnit}
+      />
     </div>
   );
 }
