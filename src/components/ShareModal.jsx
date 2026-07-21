@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -15,6 +16,7 @@ import {
 } from 'react-icons/fa';
 
 export const ShareModal = ({ isOpen, onClose, weatherData, activeUnit }) => {
+  const { t } = useTranslation();
   if (!isOpen || !weatherData) return null;
 
   const city = weatherData.city;
@@ -157,7 +159,7 @@ ${siteUrl}`;
               </div>
               <div>
                 <h3 className="font-outfit font-bold text-xl text-white">
-                  Share Weather
+                  {t('buttons.shareWeather')}
                 </h3>
                 <p className="text-xs text-slate-400 font-medium">
                   Weather update for <span className="text-blue-400 font-semibold">{city}, {country}</span>
@@ -168,7 +170,7 @@ ${siteUrl}`;
             <button
               onClick={onClose}
               className="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
-              title="Close"
+              title={t('buttons.close')}
             >
               <IoClose className="text-xl" />
             </button>
@@ -203,7 +205,7 @@ ${siteUrl}`;
               className="w-full mb-3 py-2.5 rounded-2xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <IoShareSocialOutline className="text-base" />
-              Use System Share Sheet (Mobile)
+              Use System Share Sheet
             </button>
           )}
 
@@ -213,7 +215,7 @@ ${siteUrl}`;
               onClick={onClose}
               className="w-full py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 font-bold text-xs font-outfit transition-all cursor-pointer"
             >
-              Cancel
+              {t('buttons.cancel')}
             </button>
           </div>
         </motion.div>

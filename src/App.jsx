@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 import { toPng } from 'html-to-image';
@@ -32,6 +33,7 @@ import { ErrorState } from './components/ErrorState';
 import { ShareModal } from './components/ShareModal';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { NetworkBanner } from './components/NetworkBanner';
+import { LanguageSelector } from './components/LanguageSelector';
 
 const cityCountryMapping = {
   // Pakistan
@@ -77,6 +79,7 @@ const getRainColorClass = (prob) => {
 };
 
 function App() {
+  const { t } = useTranslation();
   const [cityInput, setCityInput] = useState('');
   const [currentCity, setCurrentCity] = useState('Lahore');
   const [weatherData, setWeatherData] = useState(null);
@@ -536,10 +539,10 @@ function App() {
           <div className="flex items-center justify-between w-full md:w-auto">
             <div className="flex flex-col">
               <h1 className="text-3xl font-extrabold tracking-tight font-outfit bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-400">
-                WeatherNow
+                {t('app.title')}
               </h1>
               <span className="text-xs text-slate-400 font-semibold tracking-wider uppercase mt-0.5">
-                Real-time Weather Intelligence
+                {t('app.subtitle')}
               </span>
             </div>
             {/* Clock for smaller screens */}
@@ -558,7 +561,7 @@ function App() {
             <form onSubmit={handleSearchSubmit} className="relative flex-grow">
               <input
                 type="text"
-                placeholder="Search city, country..."
+                placeholder={t('navbar.searchPlaceholder')}
                 value={cityInput}
                 onFocus={() => {
                   setCityInput('');
@@ -591,7 +594,7 @@ function App() {
                         {searchHistory.length > 0 && (
                           <>
                             <div className="px-4 py-2.5 text-xs font-bold text-slate-400 border-b border-white/5 bg-white/[0.02] tracking-wider uppercase flex justify-between items-center">
-                              <span>Recent Searches</span>
+                              <span>{t('navbar.recentSearches')}</span>
                               <button
                                 type="button"
                                 onMouseDown={(e) => {
@@ -600,7 +603,7 @@ function App() {
                                 }}
                                 className="text-[10px] text-blue-400 hover:text-blue-300 font-semibold transition-all duration-150 uppercase"
                               >
-                                Clear All
+                                {t('navbar.clearAll')}
                               </button>
                             </div>
                             <div className="flex flex-col gap-0.5 p-1.5 border-b border-white/5 bg-slate-900/95">
@@ -638,7 +641,7 @@ function App() {
                         )}
 
                         <div className="px-4 py-2.5 text-xs font-bold text-slate-400 border-b border-white/5 bg-white/[0.02] tracking-wider uppercase">
-                          Popular Locations
+                          {t('navbar.popularLocations')}
                         </div>
                         <div className="grid grid-cols-2 gap-1 p-2 bg-slate-900/90 backdrop-blur-md">
                           {popularCities.map((city) => (
@@ -690,7 +693,7 @@ function App() {
                             ))
                           ) : (
                             <div className="px-4 py-6 text-center text-xs text-slate-400 font-medium">
-                              No matching city found.
+                              {t('navbar.noMatch')}
                             </div>
                           )}
                         </div>
@@ -705,7 +708,7 @@ function App() {
             <button
               onClick={handleLocationFetch}
               className="p-3 rounded-full glass-panel hover:bg-blue-600/20 hover:border-blue-500/30 text-blue-400 transition-all duration-300 shadow-md cursor-pointer"
-              title="Locate me"
+              title={t('navbar.detectLocation')}
             >
               <IoLocation className="text-lg" />
             </button>
@@ -714,14 +717,17 @@ function App() {
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-3 rounded-full glass-panel hover:bg-blue-600/20 hover:border-blue-500/30 text-blue-400 transition-all duration-300 shadow-md flex items-center justify-center cursor-pointer"
-              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              title={theme === 'dark' ? t('navbar.switchToLight') : t('navbar.switchToDark')}
             >
               {theme === 'dark' ? (
                 <IoSunny className="text-lg text-amber-500 transition-transform duration-300 hover:rotate-90" />
               ) : (
-                <IoMoon className="text-lg transition-transform duration-300 hover:scale-110" />
+                <IoMoon className="text-lg text-indigo-400 transition-transform duration-300 hover:-rotate-12" />
               )}
             </button>
+
+            {/* Language Selector Dropdown */}
+            <LanguageSelector />
 
             {/* C/F Unit Switcher */}
             <div className="flex bg-slate-900/50 border border-white/10 rounded-full p-1 shadow-inner">
@@ -811,10 +817,10 @@ function App() {
                           onClick={() => setIsShareModalOpen(true)}
                           data-download-ignore="true"
                           className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold font-outfit bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 cursor-pointer shadow-sm active:scale-95"
-                          title="Share Weather"
+                          title={t('currentWeather.share')}
                         >
                           <IoShareSocial className="text-sm" />
-                          <span>📤 Share</span>
+                          <span>📤 {t('currentWeather.share')}</span>
                         </button>
 
                         {/* Download Weather Card Button */}
@@ -823,17 +829,17 @@ function App() {
                           disabled={isDownloading}
                           data-download-ignore="true"
                           className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold font-outfit bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Download Weather Card as PNG"
+                          title={t('currentWeather.downloadPng')}
                         >
                           {isDownloading ? (
                             <>
                               <span className="w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                              <span>Generating image...</span>
+                              <span>{t('currentWeather.generatingImage')}</span>
                             </>
                           ) : (
                             <>
                               <IoCameraOutline className="text-sm" />
-                              <span>📸 Download PNG</span>
+                              <span>📸 {t('currentWeather.downloadPng')}</span>
                             </>
                           )}
                         </button>
@@ -845,15 +851,15 @@ function App() {
 
                     <div className="text-right">
                       <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 block">
-                        Current Weather
+                        {t('currentWeather.title')}
                       </span>
                       {isOnline ? (
                         <span className="text-xs font-medium text-blue-400 mt-1 block">
-                          Updated just now
+                          {t('currentWeather.updatedJustNow')}
                         </span>
                       ) : (
                         <span className="text-xs font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-1">
-                          📶 Last updated while online
+                          📶 {t('currentWeather.lastUpdatedOnline')}
                         </span>
                       )}
                     </div>
@@ -907,7 +913,7 @@ function App() {
                         <IoThermometer size={20} />
                       </div>
                       <div>
-                        <span className="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Humidity</span>
+                        <span className="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{t('currentWeather.humidity')}</span>
                         <span className="font-outfit font-extrabold text-sm text-white">{weatherData.current.humidity}%</span>
                       </div>
                     </div>
@@ -917,7 +923,7 @@ function App() {
                         <BsWind size={20} />
                       </div>
                       <div>
-                        <span className="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Wind Speed</span>
+                        <span className="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{t('currentWeather.windSpeed')}</span>
                         <span className="font-outfit font-extrabold text-sm text-white">{weatherData.current.windSpeed} km/h</span>
                       </div>
                     </div>
@@ -927,7 +933,7 @@ function App() {
                         <IoSunny size={20} />
                       </div>
                       <div>
-                        <span className="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider">UV Index</span>
+                        <span className="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{t('currentWeather.uvIndex')}</span>
                         <span className="font-outfit font-extrabold text-sm text-white">{weatherData.current.uvIndex} / 10</span>
                       </div>
                     </div>
@@ -937,7 +943,7 @@ function App() {
                         <IoEye size={20} />
                       </div>
                       <div>
-                        <span className="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Visibility</span>
+                        <span className="block text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{t('currentWeather.visibility')}</span>
                         <span className="font-outfit font-extrabold text-sm text-white">{weatherData.current.visibility} km</span>
                       </div>
                     </div>
@@ -954,7 +960,7 @@ function App() {
                 <div className="glass-panel rounded-3xl p-6 flex flex-col shadow-xl">
                   <h3 className="font-outfit font-semibold text-lg text-white mb-4 flex items-center gap-2">
                     <IoTrendingUp className="text-blue-400" />
-                    7-Day Forecast
+                    {t('forecast.sevenDayForecast')}
                   </h3>
 
                   <div className="flex flex-col gap-3 flex-grow justify-between">
@@ -1018,7 +1024,7 @@ function App() {
                     <div>
                       <h3 className="font-outfit font-semibold text-lg text-white flex items-center gap-2">
                         <IoSpeedometer className="text-blue-400" />
-                        Hourly Forecast
+                        {t('forecast.hourlyForecast')}
                       </h3>
                       <p className="text-xs text-slate-400 mt-0.5">Next 24 hours temperature and precipitation trends</p>
                     </div>
@@ -1040,7 +1046,7 @@ function App() {
                   <div>
                     <h3 className="font-outfit font-semibold text-lg text-white flex items-center gap-2">
                       <IoMap className="text-emerald-400" />
-                      Air Quality Index (AQI)
+                      {t('currentWeather.airQuality')} ({t('currentWeather.aqi')})
                     </h3>
                     <p className="text-xs text-slate-400 mt-0.5">Pollutants and local environmental metrics</p>
                   </div>
@@ -1144,7 +1150,7 @@ function App() {
                   <div>
                     <h3 className="font-outfit font-semibold text-lg text-white flex items-center gap-2">
                       <IoShirt className="text-sky-400" />
-                      Smart Wardrobe &amp; Gear
+                      {t('sections.smartWardrobe')}
                     </h3>
                     <p className="text-xs text-slate-400 mt-0.5">Recommendations suited to current outdoor weather</p>
                   </div>

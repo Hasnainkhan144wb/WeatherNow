@@ -1,0 +1,85 @@
+{
+  "app": {
+    "title": "WeatherNow",
+    "subtitle": "Real-time Weather Intelligence",
+    "copyright": "All rights reserved.",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "documentation": "Documentation"
+  },
+  "navbar": {
+    "searchPlaceholder": "Search city, country...",
+    "recentSearches": "Recent Searches",
+    "popularLocations": "Popular Locations",
+    "clearAll": "Clear All",
+    "detectLocation": "Current Location",
+    "language": "Language",
+    "noMatch": "No matching city found."
+  },
+  "currentWeather": {
+    "title": "Current Weather",
+    "updatedJustNow": "Updated just now",
+    "lastUpdatedOnline": "Last updated while online",
+    "feelsLike": "Feels like",
+    "high": "High",
+    "low": "Low",
+    "humidity": "Humidity",
+    "windSpeed": "Wind Speed",
+    "uvIndex": "UV Index",
+    "visibility": "Visibility",
+    "pressure": "Pressure",
+    "chanceOfRain": "Chance of Rain",
+    "sunrise": "Sunrise",
+    "sunset": "Sunset",
+    "windDirection": "Wind Direction",
+    "airQuality": "Air Quality",
+    "aqi": "AQI",
+    "share": "Share",
+    "downloadPng": "Download PNG",
+    "generatingImage": "Generating image..."
+  },
+  "forecast": {
+    "hourlyForecast": "24-Hour Forecast",
+    "sevenDayForecast": "7-Day Forecast",
+    "today": "Today"
+  },
+  "sections": {
+    "favoriteCities": "Favorite Cities",
+    "weatherAlerts": "Weather Alerts",
+    "interactiveMap": "Interactive Weather Map",
+    "smartWardrobe": "Smart Wardrobe & Gear",
+    "noAlerts": "No Active Weather Alerts",
+    "noAlertsDesc": "All weather conditions are normal for this area."
+  },
+  "buttons": {
+    "retry": "Retry",
+    "searchAnotherCity": "Search Another City",
+    "cancel": "Cancel",
+    "close": "Close",
+    "shareWeather": "Share Weather"
+  },
+  "network": {
+    "noInternet": "No Internet Connection",
+    "checkInternet": "Please check your internet. Weather data cannot be updated while offline.",
+    "connectionRestored": "Internet Connection Restored",
+    "updatingData": "Weather data is updating..."
+  },
+  "errors": {
+    "cityNotFound": "City Not Found",
+    "cityNotFoundDesc": "We couldn't find the city you entered. Please check the spelling and try again.",
+    "connectionError": "Connection Error",
+    "connectionErrorDesc": "Unable to connect to the weather service. Please check your internet connection.",
+    "serviceUnavailable": "Weather Service Unavailable",
+    "serviceUnavailableDesc": "Our weather provider is temporarily unavailable. Please try again in a few minutes.",
+    "timeout": "Request Timed Out",
+    "timeoutDesc": "The server is taking too long to respond. Please try again.",
+    "locationDenied": "Location Permission Required",
+    "locationDeniedDesc": "Enable location permission to automatically detect your weather. Or search for a city manually.",
+    "rateLimit": "Too Many Requests",
+    "rateLimitDesc": "Rate limit reached. Please wait a moment and try again.",
+    "accessRestricted": "Access Restricted",
+    "accessRestrictedDesc": "Unable to authorize request or invalid parameters. Please try again.",
+    "unexpected": "Unexpected Error",
+    "unexpectedDesc": "Something unexpected happened. Please refresh the page or try again."
+  }
+}

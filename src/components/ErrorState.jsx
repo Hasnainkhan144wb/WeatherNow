@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import {
   IoSearchOutline,
@@ -15,79 +16,72 @@ import {
 const ERROR_CONFIGS = {
   NOT_FOUND: {
     icon: IoSearchOutline,
-    badge: '404 • City Not Found',
-    title: '📍 City Not Found',
-    description: "We couldn't find the city you entered. Please check the spelling and try again.",
+    badgeKey: '404 • City Not Found',
+    titleKey: 'errors.cityNotFound',
+    descKey: 'errors.cityNotFoundDesc',
     iconColor: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-    primaryButtonText: 'Search Another City',
     primaryAction: 'search'
   },
   NETWORK_ERROR: {
     icon: IoWifiOutline,
-    badge: 'Connection Error',
-    title: '🌐 Connection Error',
-    description: 'Unable to connect to the weather service. Please check your internet connection.',
+    badgeKey: 'Connection Error',
+    titleKey: 'errors.connectionError',
+    descKey: 'errors.connectionErrorDesc',
     iconColor: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
-    primaryButtonText: 'Retry Connection',
     primaryAction: 'retry'
   },
   API_ERROR: {
     icon: IoCloudOfflineOutline,
-    badge: 'Service Error',
-    title: '⚠ Weather Service Unavailable',
-    description: 'Our weather provider is temporarily unavailable. Please try again in a few minutes.',
+    badgeKey: 'Service Error',
+    titleKey: 'errors.serviceUnavailable',
+    descKey: 'errors.serviceUnavailableDesc',
     iconColor: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
-    primaryButtonText: 'Try Again',
     primaryAction: 'retry'
   },
   TIMEOUT: {
     icon: IoTimeOutline,
-    badge: 'Request Timeout',
-    title: '⌛ Request Timed Out',
-    description: 'The server is taking too long to respond. Please try again.',
+    badgeKey: 'Request Timeout',
+    titleKey: 'errors.timeout',
+    descKey: 'errors.timeoutDesc',
     iconColor: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
-    primaryButtonText: 'Retry Request',
     primaryAction: 'retry'
   },
   LOCATION_DENIED: {
     icon: IoLocationOutline,
-    badge: 'Permission Required',
-    title: '📍 Location Permission Required',
-    description: 'Enable location permission to automatically detect your weather. Or search for a city manually.',
+    badgeKey: 'Permission Required',
+    titleKey: 'errors.locationDenied',
+    descKey: 'errors.locationDeniedDesc',
     iconColor: 'text-sky-400 bg-sky-500/10 border-sky-500/20',
-    primaryButtonText: 'Search City',
     primaryAction: 'search'
   },
   RATE_LIMIT: {
     icon: IoSpeedometerOutline,
-    badge: '429 • Rate Limit Exceeded',
-    title: '🛑 Too Many Requests',
-    description: 'Rate limit reached. Please wait a moment and try again.',
+    badgeKey: '429 • Limit Exceeded',
+    titleKey: 'errors.rateLimit',
+    descKey: 'errors.rateLimitDesc',
     iconColor: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
-    primaryButtonText: 'Try Again',
     primaryAction: 'retry'
   },
   UNAUTHORIZED: {
     icon: IoKeyOutline,
-    badge: 'Authorization Error',
-    title: '🔒 Access Restricted',
-    description: 'Unable to authorize request or invalid parameters. Please try again.',
+    badgeKey: 'Authorization Error',
+    titleKey: 'errors.accessRestricted',
+    descKey: 'errors.accessRestrictedDesc',
     iconColor: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-    primaryButtonText: 'Search City',
     primaryAction: 'search'
   },
   UNKNOWN: {
     icon: IoHelpCircleOutline,
-    badge: 'Unexpected Error',
-    title: '😕 Unexpected Error',
-    description: 'Something unexpected happened. Please refresh the page or try again.',
+    badgeKey: 'Unexpected Error',
+    titleKey: 'errors.unexpected',
+    descKey: 'errors.unexpectedDesc',
     iconColor: 'text-slate-400 bg-slate-500/10 border-slate-500/20',
-    primaryButtonText: 'Try Again',
     primaryAction: 'retry'
   }
 };
 
 export const ErrorState = ({ error, onRetry, onSearchCity }) => {
+  const { t } = useTranslation();
   const errorType = error?.type || 'UNKNOWN';
   const config = ERROR_CONFIGS[errorType] || ERROR_CONFIGS.UNKNOWN;
   const IconComponent = config.icon;
@@ -122,17 +116,17 @@ export const ErrorState = ({ error, onRetry, onSearchCity }) => {
 
         {/* Error Category Badge */}
         <div className="inline-block px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider border bg-white/5 border-white/10 text-slate-400 mb-4">
-          {config.badge}
+          {config.badgeKey}
         </div>
 
         {/* Error Heading Title */}
         <h2 className="text-2xl sm:text-3xl font-extrabold font-outfit text-white tracking-tight mb-3">
-          {config.title}
+          {t(config.titleKey)}
         </h2>
 
         {/* Friendly Description */}
         <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed max-w-sm mx-auto mb-8">
-          {config.description}
+          {t(config.descKey)}
         </p>
 
         {/* Interactive Action Buttons */}
@@ -144,12 +138,12 @@ export const ErrorState = ({ error, onRetry, onSearchCity }) => {
             {config.primaryAction === 'search' ? (
               <>
                 <IoSearchOutline className="text-base" />
-                {config.primaryButtonText}
+                {t('buttons.searchAnotherCity')}
               </>
             ) : (
               <>
                 <IoRefreshOutline className="text-base" />
-                {config.primaryButtonText}
+                {t('buttons.retry')}
               </>
             )}
           </button>
@@ -160,7 +154,7 @@ export const ErrorState = ({ error, onRetry, onSearchCity }) => {
               className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 font-semibold font-outfit text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
               <IoRefreshOutline className="text-base text-slate-400" />
-              🔄 Retry
+              🔄 {t('buttons.retry')}
             </button>
           ) : (
             <button
@@ -168,7 +162,7 @@ export const ErrorState = ({ error, onRetry, onSearchCity }) => {
               className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 font-semibold font-outfit text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
               <IoSearchOutline className="text-base text-slate-400" />
-              🔍 Search Another City
+              🔍 {t('buttons.searchAnotherCity')}
             </button>
           )}
         </div>

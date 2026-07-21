@@ -1,8 +1,11 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IoCloudOfflineOutline, IoCheckmarkCircleOutline } from 'react-icons/io5';
 
 export const NetworkBanner = ({ isOnline, showRestoredBanner }) => {
+  const { t } = useTranslation();
+
   return (
     <AnimatePresence>
       {!isOnline && (
@@ -16,7 +19,7 @@ export const NetworkBanner = ({ isOnline, showRestoredBanner }) => {
         >
           <IoCloudOfflineOutline className="text-xl animate-bounce text-white flex-shrink-0" />
           <span>
-            <strong>❌ No Internet Connection</strong> — Please check your internet. Weather data cannot be updated while offline.
+            <strong>❌ {t('network.noInternet')}</strong> — {t('network.checkInternet')}
           </span>
         </motion.div>
       )}
@@ -32,7 +35,7 @@ export const NetworkBanner = ({ isOnline, showRestoredBanner }) => {
         >
           <IoCheckmarkCircleOutline className="text-xl text-white flex-shrink-0" />
           <span>
-            <strong>✅ Internet Connection Restored</strong> — Weather data is updating...
+            <strong>✅ {t('network.connectionRestored')}</strong> — {t('network.updatingData')}
           </span>
         </motion.div>
       )}

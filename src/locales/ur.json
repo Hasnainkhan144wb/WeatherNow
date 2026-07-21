@@ -1,0 +1,85 @@
+{
+  "app": {
+    "title": "ویدر ناؤ",
+    "subtitle": "ریئل ٹائم موسم کی معلومات",
+    "copyright": "جملہ حقوق محفوظ ہیں۔",
+    "privacy": "راز داری کی پالیسی",
+    "terms": "شرائط و ضوابط",
+    "documentation": "دستاویزات"
+  },
+  "navbar": {
+    "searchPlaceholder": "شہر یا ملک تلاش کریں...",
+    "recentSearches": "حالیہ تلاشیاں",
+    "popularLocations": "مشہور مقامات",
+    "clearAll": "تمام صاف کریں",
+    "detectLocation": "موجودہ مقام",
+    "language": "زبان",
+    "noMatch": "کوئی شہر نہیں ملا۔"
+  },
+  "currentWeather": {
+    "title": "موجودہ موسم",
+    "updatedJustNow": "ابھی اپ ڈیٹ ہوا",
+    "lastUpdatedOnline": "آن لائن آخری اپ ڈیٹ",
+    "feelsLike": "محسوس درجہ حرارت",
+    "high": "زیادہ سے زیادہ",
+    "low": "کم سے کم",
+    "humidity": "ہوا میں نمی",
+    "windSpeed": "ہوا کی رفتار",
+    "uvIndex": "یو وی انڈیکس",
+    "visibility": "دید (بصارت)",
+    "pressure": "ہوا کا دباؤ",
+    "chanceOfRain": "بارش کا امکان",
+    "sunrise": "طلوعِ آفتاب",
+    "sunset": "غروبِ آفتاب",
+    "windDirection": "ہوا کی سمت",
+    "airQuality": "ہوا کی کوالٹی",
+    "aqi": "اے کیو آئی",
+    "share": "شیئر کریں",
+    "downloadPng": "ڈاؤن لوڈ کریں",
+    "generatingImage": "تصویر بنائی جا رہی ہے..."
+  },
+  "forecast": {
+    "hourlyForecast": "24 گھنٹے کی پیشگوئی",
+    "sevenDayForecast": "7 دن کی پیشگوئی",
+    "today": "آج"
+  },
+  "sections": {
+    "favoriteCities": "پسندیدہ شہر ⭐",
+    "weatherAlerts": "موسمی الرٹس 🔔",
+    "interactiveMap": "موسم کا لائیو نقشہ 🗺️",
+    "smartWardrobe": "سمارٹ لباس اور تجویز 👕",
+    "noAlerts": "کوئی شدید موسمی الرٹ نہیں",
+    "noAlertsDesc": "اس علاقے میں موسم کی تمام صورتحال معمول کے مطابق ہے۔"
+  },
+  "buttons": {
+    "retry": "دوبارہ کوشش کریں",
+    "searchAnotherCity": "دوسرا شہر تلاش کریں",
+    "cancel": "منسوخ کریں",
+    "close": "بند کریں",
+    "shareWeather": "موسم شیئر کریں"
+  },
+  "network": {
+    "noInternet": "انٹرنیٹ کنکشن موجود نہیں ہے",
+    "checkInternet": "براہ کرم اپنا انٹرنیٹ کنکشن چیک کریں۔ آف لائن ہوتے ہوئے ڈیٹا اپ ڈیٹ نہیں ہو سکتا۔",
+    "connectionRestored": "انٹرنیٹ کنکشن بحال ہو گیا",
+    "updatingData": "موسم کا ڈیٹا اپ ڈیٹ ہو رہا ہے..."
+  },
+  "errors": {
+    "cityNotFound": "شہر نہیں ملا",
+    "cityNotFoundDesc": "ہمیں آپ کا درج کردہ شہر نہیں مل سکا۔ براہ کرم املا چیک کریں اور دوبارہ کوشش کریں۔",
+    "connectionError": "کنکشن کی غلطی",
+    "connectionErrorDesc": "ویدر سروس سے رابطہ قائم نہیں ہو سکا۔ براہ کرم اپنا انٹرنیٹ چیک کریں۔",
+    "serviceUnavailable": "ویدر سروس فی الحال دستیاب نہیں",
+    "serviceUnavailableDesc": "ہمارا ویدر فراہم کنندہ فی الحال دستیاب نہیں ہے۔ براہ کرم کچھ منٹ بعد کوشش کریں۔",
+    "timeout": "درخواست کی مہلت ختم ہو گئی",
+    "timeoutDesc": "سرور جواب دینے میں بہت زیادہ وقت لے رہا ہے۔ براہ کرم دوبارہ کوشش کریں۔",
+    "locationDenied": "مقام کی اجازت درکار ہے",
+    "locationDeniedDesc": "خودکار موسم کی معلومات کے لیے لوکیشن کی اجازت فراہم کریں يا خود شہر تلاش کریں۔",
+    "rateLimit": "بہت زیادہ درخواستیں",
+    "rateLimitDesc": "درخواستوں کی حد ختم ہو گئی۔ براہ کرم کچھ دیر انتظار کریں اور دوبارہ کوشش کریں۔",
+    "accessRestricted": "رسائی محدود ہے",
+    "accessRestrictedDesc": "درخواست کی تصدیق نہیں ہو سکی۔ براہ کرم دوبارہ کوشش کریں۔",
+    "unexpected": "غیر متوقع غلطی",
+    "unexpectedDesc": "کچھ غیر متوقع پیش آیا۔ براہ کرم صفحہ ریفریش کریں یا دوبارہ کوشش کریں۔"
+  }
+}
