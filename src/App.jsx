@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
+import { toPng } from 'html-to-image';
 import {
   IoSearch,
   IoLocation,
@@ -15,7 +16,8 @@ import {
   IoCloseCircle,
   IoInformationCircle,
   IoMap,
-  IoShareSocial
+  IoShareSocial,
+  IoCameraOutline
 } from 'react-icons/io5';
 import { BsWind } from 'react-icons/bs';
 import { FaGithub, FaLinkedin, FaGlobe } from 'react-icons/fa';
@@ -28,6 +30,8 @@ import { WeatherMap } from './components/WeatherMap';
 import { WeatherAlerts } from './components/WeatherAlerts';
 import { ErrorState } from './components/ErrorState';
 import { ShareModal } from './components/ShareModal';
+import { useNetworkStatus } from './hooks/useNetworkStatus';
+import { NetworkBanner } from './components/NetworkBanner';
 
 const cityCountryMapping = {
   // Pakistan
@@ -83,6 +87,10 @@ function App() {
   const [errorState, setErrorState] = useState(null);
   const [failedRequest, setFailedRequest] = useState(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const weatherCardRef = useRef(null);
+  const { isOnline, showRestoredBanner } = useNetworkStatus();
+  const prevOnlineRef = useRef(isOnline);
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('weathernow_theme');
     if (saved) return saved;
@@ -245,6 +253,18 @@ function App() {
 
   // Fetch weather data
   const fetchWeather = async (city, saveToHistoryFlag = false) => {
+    if (!navigator.onLine || !isOnline) {
+      toast.error('❌ Cannot fetch weather. No internet connection.');
+      if (!weatherData) {
+        setErrorState({
+          type: 'NETWORK_ERROR',
+          message: 'Unable to connect to the weather service. Please check your internet connection.'
+        });
+      }
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setErrorState(null);
     try {
@@ -277,6 +297,18 @@ function App() {
 
   // Get user location & fetch weather automatically
   const detectLocationAuto = () => {
+    if (!navigator.onLine || !isOnline) {
+      toast.error('❌ Cannot fetch location weather. No internet connection.');
+      if (!weatherData) {
+        setErrorState({
+          type: 'NETWORK_ERROR',
+          message: 'Unable to connect to the weather service. Please check your internet connection.'
+        });
+      }
+      setLoading(false);
+      return;
+    }
+
     if (!navigator.geolocation) {
       setErrorState({ type: 'LOCATION_DENIED', message: 'Geolocation is not supported.' });
       setFailedRequest({ type: 'geo' });
@@ -349,6 +381,55 @@ function App() {
         setShowSearchSuggestions(true);
       }
     }, 150);
+  };
+
+  // Automatic weather refresh when returning online
+  useEffect(() => {
+    if (isOnline && !prevOnlineRef.current) {
+      if (currentCity) {
+        fetchWeather(currentCity, false);
+      }
+    }
+    prevOnlineRef.current = isOnline;
+  }, [isOnline]);
+
+  const handleDownloadCard = async () => {
+    if (!weatherCardRef.current || isDownloading) return;
+    setIsDownloading(true);
+    toast.loading('Generating high quality weather card...', { id: 'download' });
+
+    try {
+      await new Promise((r) => setTimeout(r, 150));
+
+      const dataUrl = await toPng(weatherCardRef.current, {
+        quality: 0.98,
+        pixelRatio: 2.5,
+        cacheBust: true,
+        backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
+        filter: (node) => {
+          if (node.tagName === 'BUTTON' && node.getAttribute('data-download-ignore') === 'true') {
+            return false;
+          }
+          return true;
+        }
+      });
+
+      const dateStr = new Date().toISOString().split('T')[0];
+      const cleanCity = (weatherData?.city || 'Weather').replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `WeatherNow_${cleanCity}_${dateStr}.png`;
+
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = dataUrl;
+      link.click();
+
+      toast.success('✅ Weather card downloaded successfully!', { id: 'download' });
+    } catch (err) {
+      console.error('Download card error:', err);
+      toast.error('❌ Failed to download image. Please try again.', { id: 'download' });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handleLocationFetch = () => {
@@ -439,6 +520,9 @@ function App() {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${getThemeGradient()} ${theme === 'dark' ? 'text-gray-100' : 'text-slate-800'} transition-all duration-1000 flex flex-col font-sans relative overflow-hidden pb-12`}>
+      {/* Real-time Network Connection Status Banner */}
+      <NetworkBanner isOnline={isOnline} showRestoredBanner={showRestoredBanner} />
+
       {/* Decorative Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 blur-[120px] pointer-events-none animate-pulse-slow" />
       <div className="absolute bottom-[20%] right-[-10%] w-[35%] h-[35%] rounded-full bg-purple-500/10 blur-[120px] pointer-events-none animate-pulse-slow" />
@@ -707,7 +791,7 @@ function App() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* HERO CARD: Current weather display */}
-                <div className="lg:col-span-2 glass-panel rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between min-h-[380px] shadow-xl">
+                <div ref={weatherCardRef} className="lg:col-span-2 glass-panel rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between min-h-[380px] shadow-xl">
                   {/* Atmospheric Weather Overlay */}
                   <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -722,13 +806,36 @@ function App() {
                           {weatherData.country}
                         </span>
 
+                        {/* Share Weather Button */}
                         <button
                           onClick={() => setIsShareModalOpen(true)}
+                          data-download-ignore="true"
                           className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold font-outfit bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 cursor-pointer shadow-sm active:scale-95"
                           title="Share Weather"
                         >
                           <IoShareSocial className="text-sm" />
                           <span>📤 Share</span>
+                        </button>
+
+                        {/* Download Weather Card Button */}
+                        <button
+                          onClick={handleDownloadCard}
+                          disabled={isDownloading}
+                          data-download-ignore="true"
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold font-outfit bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Download Weather Card as PNG"
+                        >
+                          {isDownloading ? (
+                            <>
+                              <span className="w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                              <span>Generating image...</span>
+                            </>
+                          ) : (
+                            <>
+                              <IoCameraOutline className="text-sm" />
+                              <span>📸 Download PNG</span>
+                            </>
+                          )}
                         </button>
                       </div>
                       <p className="text-xs text-slate-400 mt-1 font-medium">
@@ -740,9 +847,15 @@ function App() {
                       <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 block">
                         Current Weather
                       </span>
-                      <span className="text-xs font-medium text-blue-400 mt-1 block">
-                        Updated just now
-                      </span>
+                      {isOnline ? (
+                        <span className="text-xs font-medium text-blue-400 mt-1 block">
+                          Updated just now
+                        </span>
+                      ) : (
+                        <span className="text-xs font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full inline-flex items-center gap-1 mt-1">
+                          📶 Last updated while online
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -828,6 +941,12 @@ function App() {
                         <span className="font-outfit font-extrabold text-sm text-white">{weatherData.current.visibility} km</span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Powered by WeatherNow Branding Watermark for Card Export */}
+                  <div className="flex items-center justify-between text-[10px] text-slate-400/80 font-medium pt-4 mt-2 border-t border-white/5 z-10">
+                    <span>Powered by WeatherNow 🌦</span>
+                    <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
                 </div>
 
