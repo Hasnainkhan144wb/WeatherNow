@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { IoMap, IoCloudy, IoWater, IoRainy, IoSunny, IoSpeedometer, IoThermometer } from 'react-icons/io5';
+import { useTranslation } from 'react-i18next';
+import { IoMap } from 'react-icons/io5';
 
 // Fix default leaflet marker icon asset path issues in React Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -12,7 +13,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Component to dynamically recenter the map on position change
+// Component to dynamically recenter the map on position change without reloading entire map
 function MapRecenter({ center }) {
   const map = useMap();
   useEffect(() => {
@@ -47,7 +48,7 @@ const createLocationPinIcon = () => {
 };
 
 // Custom Temperature Badge Marker
-const createTempBadgeIcon = (temp, unitSymbol, condition) => {
+const createTempBadgeIcon = (temp, unitSymbol) => {
   return L.divIcon({
     className: 'custom-temp-badge',
     html: `
@@ -63,8 +64,7 @@ const createTempBadgeIcon = (temp, unitSymbol, condition) => {
 };
 
 export const WeatherMap = ({ weatherData, activeUnit = 'C', theme = 'dark' }) => {
-  const [activeLayer, setActiveLayer] = useState('standard');
-  const [mapError, setMapError] = useState(false);
+  const { t } = useTranslation();
 
   // Default coordinates fallback: Islamabad, Pakistan (33.6844, 73.0479)
   const defaultCoords = [33.6844, 73.0479];
@@ -79,90 +79,32 @@ export const WeatherMap = ({ weatherData, activeUnit = 'C', theme = 'dark' }) =>
   const humidity = weatherData?.current?.humidity ?? '--';
   const windSpeed = weatherData?.current?.windSpeed ?? '--';
 
-  // Tile layers based on theme
+  // Base tile layers based on theme
   const darkTileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
   const lightTileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-  const tileUrl = theme === 'dark' ? darkTileUrl : lightTileUrl;
-
-  // Future ready tile overlays
-  const weatherOverlayTiles = {
-    rain: 'https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=placeholder_key',
-    clouds: 'https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=placeholder_key',
-    wind: 'https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=placeholder_key'
-  };
+  const baseTileUrl = theme === 'dark' ? darkTileUrl : lightTileUrl;
 
   return (
-    <div className="w-full glass-panel rounded-3xl p-6 shadow-xl relative overflow-hidden my-6 border border-white/10">
-      {/* Header Bar with Title and Future-Ready Layer Toggles */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 pb-3 border-b border-white/5">
+    <div className="w-full glass-panel rounded-3xl p-4 sm:p-6 shadow-xl relative overflow-hidden my-6 border border-white/10">
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-white/5">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
             <IoMap className="text-xl" />
           </div>
           <div>
-            <h2 className="text-lg font-bold font-outfit text-white tracking-wide flex items-center gap-2">
-              🗺 Interactive Weather Map
+            <h2 className="text-base sm:text-lg font-bold font-outfit text-white tracking-wide flex items-center gap-2">
+              {t('sections.interactiveMap') || '🗺 Interactive Weather Map'}
             </h2>
             <p className="text-xs text-slate-400 font-medium">
               Real-time spatial visualization for {currentCity}
             </p>
           </div>
         </div>
-
-        {/* Modular Layer Controls (Future Ready) */}
-        <div className="flex items-center gap-1.5 bg-slate-900/60 p-1 rounded-2xl border border-white/10 text-xs">
-          <button
-            onClick={() => setActiveLayer('standard')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-              activeLayer === 'standard'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <IoThermometer className="text-sm" />
-            <span>Standard</span>
-          </button>
-          <button
-            onClick={() => setActiveLayer('rain')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-              activeLayer === 'rain'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-            title="Rain Radar Layer"
-          >
-            <IoRainy className="text-sm" />
-            <span>Rain</span>
-          </button>
-          <button
-            onClick={() => setActiveLayer('wind')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-              activeLayer === 'wind'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-            title="Wind Speed Layer"
-          >
-            <IoSpeedometer className="text-sm" />
-            <span>Wind</span>
-          </button>
-          <button
-            onClick={() => setActiveLayer('clouds')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-              activeLayer === 'clouds'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-            title="Cloud Cover Layer"
-          >
-            <IoCloudy className="text-sm" />
-            <span>Clouds</span>
-          </button>
-        </div>
       </div>
 
       {/* Map Container */}
-      <div className="w-full h-[480px] rounded-2xl overflow-hidden relative z-0 border border-white/10 shadow-inner">
+      <div className="w-full h-[420px] sm:h-[480px] rounded-2xl overflow-hidden relative z-0 border border-white/10 shadow-inner">
         <MapContainer
           center={targetCoords}
           zoom={10}
@@ -172,24 +114,16 @@ export const WeatherMap = ({ weatherData, activeUnit = 'C', theme = 'dark' }) =>
           style={{ width: '100%', height: '100%', borderRadius: '1rem' }}
         >
           <MapRecenter center={targetCoords} />
-          
-          {/* Base Tiles */}
+
+          {/* Base Map Tile Layer */}
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url={tileUrl}
+            url={baseTileUrl}
             subdomains="abcd"
             maxZoom={19}
           />
 
-          {/* Optional Overlay Layer when selected */}
-          {activeLayer !== 'standard' && weatherOverlayTiles[activeLayer] && (
-            <TileLayer
-              url={weatherOverlayTiles[activeLayer]}
-              opacity={0.5}
-            />
-          )}
-
-          {/* Location Pin Marker */}
+          {/* Current Location Pin Marker */}
           <Marker position={targetCoords} icon={createLocationPinIcon()}>
             <Popup className="custom-leaflet-popup">
               <div className="p-1 font-sans text-slate-900">
@@ -203,8 +137,8 @@ export const WeatherMap = ({ weatherData, activeUnit = 'C', theme = 'dark' }) =>
             </Popup>
           </Marker>
 
-          {/* Temperature Badge & Weather Info Marker */}
-          <Marker position={targetCoords} icon={createTempBadgeIcon(temp, unitSymbol, condition)}>
+          {/* Weather Details Badge Marker */}
+          <Marker position={targetCoords} icon={createTempBadgeIcon(temp, unitSymbol)}>
             <Popup className="custom-leaflet-popup">
               <div className="p-1.5 font-sans min-w-[160px] text-slate-900">
                 <div className="font-bold text-sm text-amber-500 mb-1 border-b border-slate-200 pb-1 flex items-center justify-between">
@@ -229,14 +163,6 @@ export const WeatherMap = ({ weatherData, activeUnit = 'C', theme = 'dark' }) =>
             </Popup>
           </Marker>
         </MapContainer>
-
-        {/* Active Layer Banner Indicator */}
-        {activeLayer !== 'standard' && (
-          <div className="absolute bottom-4 left-4 z-[400] bg-slate-950/90 text-white px-3 py-1.5 rounded-xl text-xs font-bold border border-blue-500/40 shadow-xl backdrop-blur-md flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
-            <span className="capitalize">{activeLayer} Layer Active</span>
-          </div>
-        )}
       </div>
     </div>
   );

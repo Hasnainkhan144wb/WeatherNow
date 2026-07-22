@@ -51,6 +51,14 @@
     "noAlerts": "No Active Weather Alerts",
     "noAlertsDesc": "All weather conditions are normal for this area."
   },
+  "map": {
+    "standard": "Standard",
+    "rain": "Rain",
+    "wind": "Wind",
+    "clouds": "Clouds",
+    "loading": "Loading weather layer...",
+    "error": "Unable to load map layer. Please try again."
+  },
   "buttons": {
     "retry": "Retry",
     "searchAnotherCity": "Search Another City",
@@ -81,5 +89,13 @@
     "accessRestrictedDesc": "Unable to authorize request or invalid parameters. Please try again.",
     "unexpected": "Unexpected Error",
     "unexpectedDesc": "Something unexpected happened. Please refresh the page or try again."
+  },
+  "voiceSearch": {
+    "title": "Voice Search",
+    "listening": "🎤 Listening... Speak a city name",
+    "recognized": "Voice recognized",
+    "noSpeech": "🎤 No voice detected. Please try again.",
+    "permissionDenied": "🎤 Microphone permission denied. Please enable microphone access.",
+    "notSupported": "Voice search is not supported in your browser."
   }
 }

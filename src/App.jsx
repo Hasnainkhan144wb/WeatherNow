@@ -34,6 +34,7 @@ import { ShareModal } from './components/ShareModal';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { NetworkBanner } from './components/NetworkBanner';
 import { LanguageSelector } from './components/LanguageSelector';
+import { VoiceSearchButton } from './components/VoiceSearchButton';
 
 const cityCountryMapping = {
   // Pakistan
@@ -79,9 +80,18 @@ const getRainColorClass = (prob) => {
 };
 
 function App() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [cityInput, setCityInput] = useState('');
   const [currentCity, setCurrentCity] = useState('Lahore');
+
+  const handleVoiceSearchResult = (spokenCity) => {
+    if (spokenCity && spokenCity.trim()) {
+      const cleanCity = spokenCity.trim();
+      setCityInput(cleanCity);
+      setCurrentCity(cleanCity);
+      fetchWeather(cleanCity, true);
+    }
+  };
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeUnit, setActiveUnit] = useState('C'); // 'C' or 'F'
@@ -575,9 +585,15 @@ function App() {
                 }}
                 onChange={(e) => setCityInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="w-full glass-input text-sm text-white pl-10 pr-4 py-2.5 rounded-full outline-none transition-all duration-300 font-outfit"
+                className="w-full glass-input text-sm text-white pl-10 pr-10 py-2.5 rounded-full outline-none transition-all duration-300 font-outfit"
               />
               <IoSearch className="absolute left-3.5 top-3.5 text-slate-400 text-base" />
+
+              {/* Voice Search Button */}
+              <VoiceSearchButton
+                onSearchResult={handleVoiceSearchResult}
+                currentLang={i18n.language}
+              />
 
               {/* Autocomplete Dropdown */}
               <AnimatePresence>
@@ -772,9 +788,15 @@ function App() {
         {loading ? (
           /* Sleek Loader Skeleton */
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-pulse mt-8">
-            <div className="lg:col-span-2 h-[380px] bg-slate-900/30 rounded-3xl border border-white/5" />
-            <div className="h-[380px] bg-slate-900/30 rounded-3xl border border-white/5" />
-            <div className="lg:col-span-3 h-[200px] bg-slate-900/30 rounded-3xl border border-white/5" />
+            <div className="lg:col-span-2 h-[380px] bg-slate-900/40 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
+            </div>
+            <div className="h-[380px] bg-slate-900/40 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
+            </div>
+            <div className="lg:col-span-3 h-[200px] bg-slate-900/40 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
+            </div>
           </div>
         ) : errorState ? (
           <ErrorState
@@ -784,44 +806,59 @@ function App() {
           />
         ) : (
           weatherData && (
-            <div className="flex flex-col gap-6 mt-4">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={weatherData.city}
+                initial={{ opacity: 0, y: 15, scale: 0.99 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -15, scale: 0.99 }}
+                transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                className="flex flex-col gap-6 mt-4"
+              >
 
-              {/* Favorite Cities Section */}
-              <FavoritesWidget
-                currentCity={weatherData.city}
-                onSelectCity={fetchWeather}
-                activeUnit={activeUnit}
-              />
+                {/* Favorite Cities Section */}
+                <FavoritesWidget
+                  currentCity={weatherData.city}
+                  onSelectCity={fetchWeather}
+                  activeUnit={activeUnit}
+                />
 
-              {/* Main Weather Information Panel */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Main Weather Information Panel */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* HERO CARD: Current weather display */}
-                <div ref={weatherCardRef} className="lg:col-span-2 glass-panel rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between min-h-[380px] shadow-xl">
-                  {/* Atmospheric Weather Overlay */}
-                  <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+                  {/* HERO CARD: Current weather display */}
+                  <motion.div
+                    ref={weatherCardRef}
+                    whileHover={{ y: -3, scale: 1.005 }}
+                    transition={{ duration: 0.3 }}
+                    className="lg:col-span-2 glass-panel rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between min-h-[380px] shadow-xl"
+                  >
+                    {/* Atmospheric Weather Overlay */}
+                    <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
-                  {/* Header info */}
-                  <div className="flex justify-between items-start z-10">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h2 className="font-outfit font-extrabold text-3xl text-white">
-                          {weatherData.city}
-                        </h2>
-                        <span className="text-xs bg-white/10 px-2 py-0.5 rounded text-slate-300 font-bold uppercase border border-white/5">
-                          {weatherData.country}
-                        </span>
+                    {/* Header info */}
+                    <div className="flex justify-between items-start z-10">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="font-outfit font-extrabold text-3xl text-white">
+                            {weatherData.city}
+                          </h2>
+                          <span className="text-xs bg-white/10 px-2 py-0.5 rounded text-slate-300 font-bold uppercase border border-white/5">
+                            {weatherData.country}
+                          </span>
 
-                        {/* Share Weather Button */}
-                        <button
-                          onClick={() => setIsShareModalOpen(true)}
-                          data-download-ignore="true"
-                          className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold font-outfit bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 cursor-pointer shadow-sm active:scale-95"
-                          title={t('currentWeather.share')}
-                        >
-                          <IoShareSocial className="text-sm" />
-                          <span>📤 {t('currentWeather.share')}</span>
-                        </button>
+                          {/* Share Weather Button */}
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setIsShareModalOpen(true)}
+                            data-download-ignore="true"
+                            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold font-outfit bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 cursor-pointer shadow-sm"
+                            title={t('currentWeather.share')}
+                          >
+                            <IoShareSocial className="text-sm" />
+                            <span>📤 {t('currentWeather.share')}</span>
+                          </motion.button>
 
                         {/* Download Weather Card Button */}
                         <button
@@ -954,7 +991,7 @@ function App() {
                     <span>Powered by WeatherNow 🌦</span>
                     <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* 7-DAY FORECAST WIDGET */}
                 <div className="glass-panel rounded-3xl p-6 flex flex-col shadow-xl">
@@ -1244,7 +1281,8 @@ function App() {
 
               </div>
 
-            </div>
+              </motion.div>
+            </AnimatePresence>
           )
         )}
       </main>

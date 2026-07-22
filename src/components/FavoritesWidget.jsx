@@ -150,43 +150,43 @@ export const FavoritesWidget = ({ currentCity, onSelectCity, activeUnit }) => {
   const unitSymbol = activeUnit === 'C' ? '°C' : '°F';
 
   return (
-    <div className="glass-panel rounded-3xl p-6 relative overflow-hidden border border-white/10 shadow-xl">
+    <div className="glass-panel rounded-3xl p-4 sm:p-5 relative overflow-hidden border border-white/10 shadow-xl">
       {/* Background glow */}
       <div className="absolute top-0 right-0 w-28 h-28 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div>
-          <h3 className="font-outfit font-semibold text-lg text-white flex items-center gap-2">
+          <h3 className="font-outfit font-semibold text-base sm:text-lg text-white flex items-center gap-2">
             <IoLocationSharp className="text-blue-400" />
             Favorite Cities
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">Real-time weather monitoring for pinned regions</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">Real-time weather monitoring for pinned regions</p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => fetchFavWeather(true)}
-            className="p-2 rounded-full bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10 hover:text-white transition-all text-xs flex items-center gap-1 cursor-pointer"
+            className="p-1.5 rounded-full bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10 hover:text-white transition-all text-xs flex items-center gap-1 cursor-pointer"
             title="Refresh Live Weather"
           >
-            <IoReloadOutline className="text-sm" />
+            <IoReloadOutline className="text-xs" />
           </button>
 
           <button
             onClick={toggleFavorite}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold font-outfit border transition-all duration-300 cursor-pointer ${isFavorite
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold font-outfit border transition-all duration-300 cursor-pointer ${isFavorite
                 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/20'
                 : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'
               }`}
           >
             {isFavorite ? (
               <>
-                <IoStar className="text-sm text-yellow-400" />
+                <IoStar className="text-xs text-yellow-400" />
                 Pinned
               </>
             ) : (
               <>
-                <IoStarOutline className="text-sm" />
+                <IoStarOutline className="text-xs" />
                 Pin Current Location
               </>
             )}
@@ -195,11 +195,11 @@ export const FavoritesWidget = ({ currentCity, onSelectCity, activeUnit }) => {
       </div>
 
       {favorites.length === 0 ? (
-        <div className="text-center py-8 text-sm text-slate-400 font-medium bg-slate-900/30 rounded-2xl border border-white/5">
+        <div className="text-center py-6 text-xs text-slate-400 font-medium bg-slate-900/30 rounded-2xl border border-white/5">
           No favorite locations pinned yet. Click "Pin Current Location" to add cities here.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           <AnimatePresence mode="popLayout">
             {favorites.map((city, idx) => {
               const details = favData[city];
@@ -216,20 +216,20 @@ export const FavoritesWidget = ({ currentCity, onSelectCity, activeUnit }) => {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.25, delay: idx * 0.04 }}
                   onClick={() => handleCityClick(city)}
-                  className={`relative overflow-hidden group cursor-pointer p-4 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${isCurrent
-                      ? 'bg-blue-600/25 border-blue-500 shadow-xl shadow-blue-500/15 ring-2 ring-blue-500/40 scale-[1.02]'
+                  className={`relative overflow-hidden group cursor-pointer p-3 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${isCurrent
+                      ? 'bg-blue-600/25 border-blue-500 shadow-lg shadow-blue-500/15 ring-2 ring-blue-500/40 scale-[1.02]'
                       : 'bg-slate-900/40 border-white/10 hover:border-white/25 hover:bg-slate-900/60 hover:scale-[1.01]'
                     }`}
                 >
                   {/* Top Header Row: Country Code, Active Icon, Delete button */}
-                  <div className="flex justify-between items-center z-10 w-full mb-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-extrabold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded uppercase border border-blue-500/20">
+                  <div className="flex justify-between items-center z-10 w-full mb-1.5">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] font-extrabold text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded uppercase border border-blue-500/20">
                         {details?.country || 'PK'}
                       </span>
                       {isCurrent && (
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                          <IoCheckmarkCircle className="text-xs" /> Active
+                        <span className="flex items-center gap-0.5 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/20">
+                          <IoCheckmarkCircle className="text-[10px]" /> Active
                         </span>
                       )}
                     </div>
@@ -239,41 +239,41 @@ export const FavoritesWidget = ({ currentCity, onSelectCity, activeUnit }) => {
                       className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 p-1 rounded-full hover:bg-white/10 transition-all duration-200"
                       title="Remove pin"
                     >
-                      <IoTrashOutline size={14} />
+                      <IoTrashOutline size={12} />
                     </button>
                   </div>
 
                   {/* City Name & Condition */}
-                  <div className="z-10 my-1">
-                    <h4 className="text-base font-bold font-outfit text-white truncate tracking-wide">
+                  <div className="z-10 my-0.5">
+                    <h4 className="text-xs sm:text-sm font-bold font-outfit text-white truncate tracking-wide">
                       {city}
                     </h4>
-                    <p className="text-xs text-slate-300 mt-0.5 capitalize truncate font-medium">
+                    <p className="text-[11px] text-slate-300 mt-0.5 capitalize truncate font-medium">
                       {isLoading
-                        ? 'Loading weather...'
+                        ? 'Loading...'
                         : isError
-                          ? 'Weather unavailable'
+                          ? 'Unavailable'
                           : details?.condition || 'Clear Sky'}
                     </p>
                   </div>
 
                   {/* Temperature & Rain Chance Bottom Row */}
-                  <div className="z-10 flex items-center justify-between mt-3 pt-2 border-t border-white/5">
-                    <div className="flex items-center gap-1 text-[11px] font-semibold text-sky-300" title="Chance of Rain">
-                      <IoRainyOutline className="text-sm text-sky-400" />
+                  <div className="z-10 flex items-center justify-between mt-2 pt-1.5 border-t border-white/5">
+                    <div className="flex items-center gap-1 text-[10px] font-semibold text-sky-300" title="Chance of Rain">
+                      <IoRainyOutline className="text-xs text-sky-400 flex-shrink-0" />
                       <span>
-                        Rain: {isLoading ? '...' : isError ? 'N/A' : details?.rainChance !== undefined ? `${details.rainChance}%` : 'N/A'}
+                        {isLoading ? '...' : isError ? 'N/A' : details?.rainChance !== undefined ? `${details.rainChance}%` : 'N/A'}
                       </span>
                     </div>
 
-                    <span className="font-outfit font-black text-xl text-white">
+                    <span className="font-outfit font-black text-base sm:text-lg text-white">
                       {isLoading ? '...' : isError ? '--' : `${details?.temp ?? '--'}${unitSymbol}`}
                     </span>
                   </div>
 
                   {/* Subtle condition glow in card background */}
                   <div
-                    className={`absolute bottom-0 right-0 w-16 h-16 rounded-full blur-2xl opacity-20 pointer-events-none transition-all duration-300 ${details?.condition?.toLowerCase().includes('rain') || details?.condition?.toLowerCase().includes('thunderstorm')
+                    className={`absolute bottom-0 right-0 w-12 h-12 rounded-full blur-2xl opacity-20 pointer-events-none transition-all duration-300 ${details?.condition?.toLowerCase().includes('rain') || details?.condition?.toLowerCase().includes('thunderstorm')
                         ? 'bg-blue-500'
                         : details?.condition?.toLowerCase().includes('cloud')
                           ? 'bg-slate-400'
