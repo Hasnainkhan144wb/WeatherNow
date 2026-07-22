@@ -34,18 +34,18 @@ export const LanguageSelector = () => {
   }, []);
 
   return (
-    <div className="relative z-40" ref={dropdownRef}>
+    <div className="relative z-40 shrink-0" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold font-outfit bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 transition-all duration-200 cursor-pointer shadow-sm active:scale-95"
+        className="flex items-center justify-between gap-1 px-2.5 sm:px-3 py-1.5 h-10 w-28 sm:w-36 rounded-full text-xs font-semibold font-outfit bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 transition-all duration-200 cursor-pointer shadow-sm active:scale-95 shrink-0"
         title="Switch Language"
       >
-        <IoGlobeOutline className="text-sm text-blue-400" />
-        <span className="flex items-center gap-1">
-          <span>{currentLang.flag}</span>
-          <span>{currentLang.label}</span>
+        <IoGlobeOutline className="text-sm text-blue-400 shrink-0" />
+        <span className="flex items-center gap-1 truncate max-w-[55px] sm:max-w-none">
+          <span className="shrink-0">{currentLang.flag}</span>
+          <span className="truncate">{currentLang.label}</span>
         </span>
-        <IoChevronDown className={`text-xs text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <IoChevronDown className={`text-xs text-slate-400 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       <AnimatePresence>
@@ -55,7 +55,7 @@ export const LanguageSelector = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 mt-2 w-36 glass-panel rounded-2xl p-1.5 border border-white/10 shadow-2xl bg-slate-950/95 backdrop-blur-xl z-50 overflow-hidden"
+            className="absolute right-0 mt-2 w-32 sm:w-36 glass-panel rounded-2xl p-1.5 border border-white/10 shadow-2xl bg-slate-950/95 backdrop-blur-xl z-50 overflow-hidden"
           >
             {LANGUAGES.map((lang) => (
               <button
@@ -66,12 +66,12 @@ export const LanguageSelector = () => {
                   : 'text-slate-300 hover:text-white hover:bg-white/5'
                   }`}
               >
-                <span className="flex items-center gap-2">
-                  <span>{lang.flag}</span>
-                  <span>{lang.label}</span>
+                <span className="flex items-center gap-2 truncate">
+                  <span className="shrink-0">{lang.flag}</span>
+                  <span className="truncate">{lang.label}</span>
                 </span>
                 {i18n.language === lang.code && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
                 )}
               </button>
             ))}

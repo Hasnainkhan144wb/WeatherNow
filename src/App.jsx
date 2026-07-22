@@ -543,15 +543,15 @@ function App() {
       <Toaster position="top-right" />
 
       {/* Landing Navbar / Header */}
-      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 z-20">
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 z-20 overflow-x-hidden">
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-center justify-between w-full max-w-full">
           {/* Logo & Clock */}
           <div className="flex items-center justify-between w-full md:w-auto">
             <div className="flex flex-col">
-              <h1 className="text-3xl font-extrabold tracking-tight font-outfit bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-400">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-outfit bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-400">
                 {t('app.title')}
               </h1>
-              <span className="text-xs text-slate-400 font-semibold tracking-wider uppercase mt-0.5">
+              <span className="text-[10px] sm:text-xs text-slate-400 font-semibold tracking-wider uppercase mt-0.5">
                 {t('app.subtitle')}
               </span>
             </div>
@@ -567,8 +567,8 @@ function App() {
           </div>
 
           {/* Search bar & actions */}
-          <div className="flex items-center gap-3 w-full md:flex-grow md:max-w-2xl md:justify-end z-30 relative">
-            <form onSubmit={handleSearchSubmit} className="relative flex-grow">
+          <div className="flex flex-col md:flex-row items-center gap-2 sm:gap-3 w-full md:w-auto md:flex-grow md:max-w-2xl md:justify-end z-30 relative">
+            <form onSubmit={handleSearchSubmit} className="relative w-full md:flex-grow">
               <input
                 type="text"
                 placeholder={t('navbar.searchPlaceholder')}
@@ -585,9 +585,9 @@ function App() {
                 }}
                 onChange={(e) => setCityInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="w-full glass-input text-sm text-white pl-10 pr-10 py-2.5 rounded-full outline-none transition-all duration-300 font-outfit"
+                className="w-full glass-input text-xs sm:text-sm text-white pl-9 sm:pl-10 pr-9 sm:pr-10 py-2 sm:py-2.5 rounded-full outline-none transition-all duration-300 font-outfit"
               />
-              <IoSearch className="absolute left-3.5 top-3.5 text-slate-400 text-base" />
+              <IoSearch className="absolute left-3 top-2.5 sm:top-3.5 text-slate-400 text-sm sm:text-base" />
 
               {/* Voice Search Button */}
               <VoiceSearchButton
@@ -720,61 +720,64 @@ function App() {
               </AnimatePresence>
             </form>
 
-            {/* Geolocation Button */}
-            <button
-              onClick={handleLocationFetch}
-              className="p-3 rounded-full glass-panel hover:bg-blue-600/20 hover:border-blue-500/30 text-blue-400 transition-all duration-300 shadow-md cursor-pointer"
-              title={t('navbar.detectLocation')}
-            >
-              <IoLocation className="text-lg" />
-            </button>
-
-            {/* Theme Toggle Button */}
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-3 rounded-full glass-panel hover:bg-blue-600/20 hover:border-blue-500/30 text-blue-400 transition-all duration-300 shadow-md flex items-center justify-center cursor-pointer"
-              title={theme === 'dark' ? t('navbar.switchToLight') : t('navbar.switchToDark')}
-            >
-              {theme === 'dark' ? (
-                <IoSunny className="text-lg text-amber-500 transition-transform duration-300 hover:rotate-90" />
-              ) : (
-                <IoMoon className="text-lg text-indigo-400 transition-transform duration-300 hover:-rotate-12" />
-              )}
-            </button>
-
-            {/* Language Selector Dropdown */}
-            <LanguageSelector />
-
-            {/* C/F Unit Switcher */}
-            <div className="flex bg-slate-900/50 border border-white/10 rounded-full p-1 shadow-inner">
+            {/* Control Buttons & Toggles */}
+            <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full sm:w-auto shrink-0 max-w-full">
+              {/* Geolocation Button */}
               <button
-                onClick={() => toggleUnit('C')}
-                className={`w-8 h-8 rounded-full text-xs font-bold transition-all duration-300 ${activeUnit === 'C'
-                  ? 'bg-blue-500 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-                  }`}
+                onClick={handleLocationFetch}
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full glass-panel hover:bg-blue-600/20 hover:border-blue-500/30 text-blue-400 transition-all duration-300 shadow-md cursor-pointer flex items-center justify-center shrink-0"
+                title={t('navbar.detectLocation')}
               >
-                °C
+                <IoLocation className="text-base sm:text-lg" />
               </button>
-              <button
-                onClick={() => toggleUnit('F')}
-                className={`w-8 h-8 rounded-full text-xs font-bold transition-all duration-300 ${activeUnit === 'F'
-                  ? 'bg-blue-500 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-                  }`}
-              >
-                °F
-              </button>
-            </div>
 
-            {/* Clock for medium/large screens */}
-            <div className="hidden md:flex flex-col text-right pl-3 border-l border-white/10 min-w-[130px]">
-              <span className="text-sm font-semibold font-outfit text-blue-400">
-                {localTime ? localTime.split(',')[1] : ''}
-              </span>
-              <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
-                {localTime ? localTime.split(',')[0] : ''}
-              </span>
+              {/* Theme Toggle Button */}
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full glass-panel hover:bg-blue-600/20 hover:border-blue-500/30 text-blue-400 transition-all duration-300 shadow-md flex items-center justify-center cursor-pointer shrink-0"
+                title={theme === 'dark' ? t('navbar.switchToLight') : t('navbar.switchToDark')}
+              >
+                {theme === 'dark' ? (
+                  <IoSunny className="text-base sm:text-lg text-amber-500 transition-transform duration-300 hover:rotate-90" />
+                ) : (
+                  <IoMoon className="text-base sm:text-lg text-indigo-400 transition-transform duration-300 hover:-rotate-12" />
+                )}
+              </button>
+
+              {/* Language Selector Dropdown */}
+              <LanguageSelector />
+
+              {/* C/F Unit Switcher */}
+              <div className="flex items-center justify-center bg-slate-900/50 border border-white/10 rounded-full p-1 shadow-inner min-w-[72px] h-10 shrink-0">
+                <button
+                  onClick={() => toggleUnit('C')}
+                  className={`w-8 h-8 rounded-full text-xs font-bold transition-all duration-300 flex items-center justify-center cursor-pointer ${activeUnit === 'C'
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                    }`}
+                >
+                  °C
+                </button>
+                <button
+                  onClick={() => toggleUnit('F')}
+                  className={`w-8 h-8 rounded-full text-xs font-bold transition-all duration-300 flex items-center justify-center cursor-pointer ${activeUnit === 'F'
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                    }`}
+                >
+                  °F
+                </button>
+              </div>
+
+              {/* Clock for medium/large screens */}
+              <div className="hidden md:flex flex-col text-right pl-3 border-l border-white/10 min-w-[130px] shrink-0">
+                <span className="text-sm font-semibold font-outfit text-blue-400">
+                  {localTime ? localTime.split(',')[1] : ''}
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                  {localTime ? localTime.split(',')[0] : ''}
+                </span>
+              </div>
             </div>
           </div>
         </div>
