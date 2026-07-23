@@ -23,7 +23,7 @@ import {
 import { BsWind } from 'react-icons/bs';
 import { FaGithub, FaLinkedin, FaGlobe } from 'react-icons/fa';
 
-import { getWeatherData, getWeatherDataByCoords, getClothingRecommendation } from './services/weatherService';
+import { getWeatherData, getWeatherDataByCoords, getClothingRecommendation, searchCitiesGeocoding } from './services/weatherService';
 import { WeatherChart } from './components/WeatherChart';
 import { FavoritesWidget } from './components/FavoritesWidget';
 import { WeatherIcon } from './components/WeatherIcon';
@@ -146,9 +146,12 @@ function App() {
   }, [theme]);
 
   const popularPakistaniCities = [
-    'Lahore', 'Karachi', 'Islamabad', 'Rawalpindi', 'Multan', 'Vehari',
-    'Faisalabad', 'Peshawar', 'Quetta', 'Hyderabad', 'Sialkot', 'Gujranwala',
-    'Bahawalpur', 'Sahiwal', 'Rahim Yar Khan', 'Murree', 'Gilgit', 'Skardu'
+    'Lahore', 'Karachi', 'Islamabad', 'Rawalpindi', 'Multan', 'Faisalabad', 'Peshawar',
+    'Jhelum', 'Vehari', 'Layyah', 'Gujrat', 'Gujranwala', 'Bahawalpur', 'Bahawalnagar',
+    'Mianwali', 'Khushab', 'Sahiwal', 'Chakwal', 'Attock', 'Narowal', 'Hafizabad', 'Chiniot',
+    'Okara', 'Kasur', 'Muzaffargarh', 'Rajanpur', 'Dera Ghazi Khan', 'Rahim Yar Khan',
+    'Abbottabad', 'Swat', 'Gilgit', 'Skardu', 'Quetta', 'Gwadar', 'Hyderabad', 'Sukkur',
+    'Mirpur Khas', 'Larkana'
   ];
 
   const internationalCities = [
@@ -196,18 +199,27 @@ function App() {
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [suggestions, setSuggestions] = useState([]);
 
-  // Calculate suggestions when input changes
+  // Calculate geocoded suggestions dynamically using Open-Meteo Geocoding API
   useEffect(() => {
     if (!cityInput.trim()) {
       setSuggestions([]);
       setActiveSuggestionIndex(-1);
       return;
     }
-    const filtered = allCitiesForAutocomplete.filter(city =>
-      city.toLowerCase().includes(cityInput.toLowerCase())
-    );
-    setSuggestions(filtered);
-    setActiveSuggestionIndex(-1);
+
+    let isMounted = true;
+    const timer = setTimeout(async () => {
+      const results = await searchCitiesGeocoding(cityInput.trim());
+      if (isMounted) {
+        setSuggestions(results);
+        setActiveSuggestionIndex(-1);
+      }
+    }, 150);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [cityInput]);
 
   const handleKeyDown = (e) => {
@@ -226,10 +238,16 @@ function App() {
     } else if (e.key === 'Enter') {
       if (activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
         e.preventDefault();
-        const selectedCity = suggestions[activeSuggestionIndex];
-        setCityInput(selectedCity);
-        setCurrentCity(selectedCity);
-        fetchWeather(selectedCity, true);
+        const selected = suggestions[activeSuggestionIndex];
+        const isObj = typeof selected === 'object';
+        const name = isObj ? selected.name : selected;
+        const formattedLabel = isObj ? selected.formattedLabel : name;
+        const lat = isObj ? selected.latitude : null;
+        const lon = isObj ? selected.longitude : null;
+        setCityInput(formattedLabel);
+        setCurrentCity(name);
+        fetchWeather(name, true, lat, lon);
+        setShowSearchSuggestions(false);
       }
     } else if (e.key === 'Escape') {
       setShowSearchSuggestions(false);
@@ -720,38 +738,47 @@ function App() {
                         <>
                           <div className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] tracking-wider uppercase flex items-center gap-1.5">
                             <span>🔍</span>
-                            <span>Suggestions</span>
+                            <span>Suggestions ({suggestions.length})</span>
                           </div>
                           <div className="max-h-64 overflow-y-auto p-1.5 flex flex-col gap-0.5 scrollbar-thin bg-white dark:bg-slate-900/90 backdrop-blur-md">
                             {suggestions.length > 0 ? (
-                              suggestions.map((city, idx) => (
-                                <button
-                                  key={city}
-                                  type="button"
-                                  onMouseDown={() => {
-                                    setCityInput(city);
-                                    setCurrentCity(city);
-                                    fetchWeather(city, true);
-                                    setShowSearchSuggestions(false);
-                                  }}
-                                  onMouseEnter={() => setActiveSuggestionIndex(idx)}
-                                  className={`flex items-center justify-between text-left px-3.5 py-2.5 text-xs rounded-xl transition-all duration-150 border-l-2 ${activeSuggestionIndex === idx
-                                    ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-white border-blue-500 font-semibold'
-                                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 border-transparent'
-                                    }`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-blue-500 dark:text-blue-400 text-xs">🔍</span>
-                                    <span>{city}</span>
-                                  </div>
-                                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/5">
-                                    {cityCountryMapping[city] || 'GL'}
-                                  </span>
-                                </button>
-                              ))
+                              suggestions.map((item, idx) => {
+                                const isObj = typeof item === 'object';
+                                const name = isObj ? item.name : item;
+                                const formattedLabel = isObj ? item.formattedLabel : item;
+                                const countryCode = isObj ? item.countryCode : (cityCountryMapping[name] || 'GL');
+                                const lat = isObj ? item.latitude : null;
+                                const lon = isObj ? item.longitude : null;
+
+                                return (
+                                  <button
+                                    key={isObj ? item.id || idx : `${item}_${idx}`}
+                                    type="button"
+                                    onMouseDown={() => {
+                                      setCityInput(formattedLabel);
+                                      setCurrentCity(name);
+                                      fetchWeather(name, true, lat, lon);
+                                      setShowSearchSuggestions(false);
+                                    }}
+                                    onMouseEnter={() => setActiveSuggestionIndex(idx)}
+                                    className={`flex items-center justify-between text-left px-3.5 py-2.5 text-xs rounded-xl transition-all duration-150 border-l-2 ${activeSuggestionIndex === idx
+                                      ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-white border-blue-500 font-semibold'
+                                      : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 border-transparent'
+                                      }`}
+                                  >
+                                    <div className="flex items-center gap-2 truncate pr-2">
+                                      <span className="text-blue-500 dark:text-blue-400 text-xs shrink-0">🔍</span>
+                                      <span className="truncate">{formattedLabel}</span>
+                                    </div>
+                                    <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/5 shrink-0">
+                                      {countryCode}
+                                    </span>
+                                  </button>
+                                );
+                              })
                             ) : (
                               <div className="px-4 py-6 text-center text-xs text-slate-400 font-medium">
-                                {t('navbar.noMatch')}
+                                No matching city found for "{cityInput}"
                               </div>
                             )}
                           </div>

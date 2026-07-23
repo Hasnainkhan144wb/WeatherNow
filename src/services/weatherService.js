@@ -399,6 +399,79 @@ const fetchWeatherForCoordinates = async (lat, lon, cityName, countryCode, units
 };
 
 /**
+ * Search cities using Open-Meteo Geocoding API (with Pakistani priority & full location details)
+ */
+export const searchCitiesGeocoding = async (query) => {
+  if (!query || !query.trim()) return [];
+  const cleanQuery = query
+    .replace(/\s+District$/i, '')
+    .replace(/\s+Division$/i, '')
+    .replace(/\s+Tehsil$/i, '')
+    .replace(/^Current Location$/i, 'Vehari')
+    .trim();
+
+  try {
+    let res = await axios.get(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanQuery)}&count=10&language=en&format=json`
+    );
+
+    if (!res.data || !res.data.results || res.data.results.length === 0) {
+      const firstWord = cleanQuery.split(' ')[0];
+      if (firstWord && firstWord.length >= 2 && firstWord !== cleanQuery) {
+        const fallbackRes = await axios.get(
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(firstWord)}&count=10&language=en&format=json`
+        );
+        if (fallbackRes.data?.results?.length) {
+          res = fallbackRes;
+        }
+      }
+    }
+
+    if (!res.data || !res.data.results || res.data.results.length === 0) {
+      return [];
+    }
+
+    // Sort results to prioritize Pakistan (country_code === 'PK')
+    const sorted = [...res.data.results].sort((a, b) => {
+      const aIsPk = a.country_code === 'PK' ? 1 : 0;
+      const bIsPk = b.country_code === 'PK' ? 1 : 0;
+      if (aIsPk !== bIsPk) return bIsPk - aIsPk;
+      return (b.population || 0) - (a.population || 0);
+    });
+
+    return sorted.map((item) => {
+      const cityName = item.name;
+      const admin1 = item.admin1 || '';
+      const country = item.country || '';
+      const countryCode = (item.country_code || 'PK').toUpperCase();
+
+      const labelParts = [cityName];
+      if (admin1 && admin1.toLowerCase() !== cityName.toLowerCase()) {
+        labelParts.push(admin1);
+      }
+      if (country && country.toLowerCase() !== admin1.toLowerCase()) {
+        labelParts.push(country);
+      }
+      const formattedLabel = labelParts.join(', ');
+
+      return {
+        id: `${item.id || item.latitude + '_' + item.longitude}`,
+        name: cityName,
+        formattedLabel,
+        admin1,
+        country,
+        countryCode,
+        latitude: item.latitude,
+        longitude: item.longitude
+      };
+    });
+  } catch (err) {
+    console.warn('Geocoding search failed:', err.message);
+    return [];
+  }
+};
+
+/**
  * Fetch Weather Data by City Name (with forward geocoding)
  */
 export const getWeatherData = async (city, units = 'metric') => {
@@ -410,37 +483,26 @@ export const getWeatherData = async (city, units = 'metric') => {
       .replace(/^Current Location$/i, 'Vehari')
       .trim();
 
-    let geoRes = await axios.get(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanCityName)}&count=1`
-    );
+    const results = await searchCitiesGeocoding(cleanCityName);
 
-    if (!geoRes.data.results || geoRes.data.results.length === 0) {
-      // Search fallback: try first word
-      const firstWord = cleanCityName.split(' ')[0];
-      if (firstWord && firstWord !== cleanCityName) {
-        geoRes = await axios.get(
-          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(firstWord)}&count=1`
-        );
-      }
-    }
-
-    if (!geoRes.data.results || geoRes.data.results.length === 0) {
-      const err = new Error('City not found');
+    if (!results || results.length === 0) {
+      const err = new Error(`No matching city found for "${city}"`);
       err.status = 404;
       err.type = 'NOT_FOUND';
       throw err;
     }
 
-    const result = geoRes.data.results[0];
-    const countryCode = result.country_code || result.country || 'LOC';
-    
-    return await fetchWeatherForCoordinates(
-      result.latitude,
-      result.longitude,
-      cleanCityName || result.name,
-      countryCode,
+    const best = results[0];
+
+    const data = await fetchWeatherForCoordinates(
+      best.latitude,
+      best.longitude,
+      best.name,
+      best.countryCode,
       units
     );
+    data.fullName = best.formattedLabel;
+    return data;
   } catch (error) {
     if (error.response) {
       error.status = error.response.status;
