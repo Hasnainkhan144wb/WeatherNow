@@ -91,7 +91,14 @@ export const getClothingRecommendation = (tempCelsius, condition) => {
 /**
  * Reverse geocode latitude and longitude to a city name
  */
+/**
+ * Reverse geocode latitude and longitude to a city name
+ */
 const reverseGeocode = async (lat, lon) => {
+  let rawCity = null;
+  let country = 'Pakistan';
+  let countryCode = 'PK';
+
   // 1. Try Open-Meteo Reverse Geocoding API
   try {
     const res = await axios.get(
@@ -99,48 +106,58 @@ const reverseGeocode = async (lat, lon) => {
     );
     if (res.data && res.data.results && res.data.results.length > 0) {
       const result = res.data.results[0];
-      const city = result.name || result.city || result.admin1;
-      const country = result.country || 'Pakistan';
-      const countryCode = (result.country_code || 'PK').toUpperCase();
-      if (city && city.toLowerCase() !== 'current location') {
-        return { city, country, countryCode };
-      }
+      rawCity = result.city || result.name || result.locality || result.admin2 || result.admin1;
+      country = result.country || 'Pakistan';
+      countryCode = (result.country_code || 'PK').toUpperCase();
     }
   } catch (e) {
     console.warn('Open-Meteo reverse geocoding failed:', e.message);
   }
 
   // 2. Try Nominatim Reverse Geocoding API
-  try {
-    const res = await axios.get(
-      `https://nominatim.openstreetmap.org/reverse`,
-      {
-        params: { lat, lon, format: 'json', 'accept-language': 'en' },
-        headers: { 'User-Agent': 'WeatherNow-App' }
+  if (!rawCity) {
+    try {
+      const res = await axios.get(
+        `https://nominatim.openstreetmap.org/reverse`,
+        {
+          params: { lat, lon, format: 'json', 'accept-language': 'en' },
+          headers: { 'User-Agent': 'WeatherNow-App' }
+        }
+      );
+      if (res.data && res.data.address) {
+        const addr = res.data.address;
+        rawCity = addr.city || addr.town || addr.village || addr.suburb || addr.locality || addr.district || addr.county || addr.state_district;
+        country = addr.country || 'Pakistan';
+        countryCode = (addr.country_code || 'PK').toUpperCase();
       }
-    );
-    if (res.data && res.data.address) {
-      const addr = res.data.address;
-      const city = addr.city || addr.town || addr.village || addr.suburb || addr.county || addr.district || addr.state_district;
-      const country = addr.country || 'Pakistan';
-      const countryCode = (addr.country_code || 'PK').toUpperCase();
-      if (city && city.toLowerCase() !== 'current location') {
-        return { city, country, countryCode };
-      }
+    } catch (e) {
+      console.warn('Nominatim reverse geocoding failed:', e.message);
     }
-  } catch (e) {
-    console.warn('Nominatim reverse geocoding failed:', e.message);
   }
 
   // 3. Smart Proximity Fallback to Pakistani cities (e.g. Vehari, Lahore, Karachi, Islamabad, Multan)
-  let fallbackCity = 'Vehari';
-  if (Math.abs(lat - 31.5497) < 0.8 && Math.abs(lon - 74.3436) < 0.8) fallbackCity = 'Lahore';
-  else if (Math.abs(lat - 24.8607) < 0.8 && Math.abs(lon - 67.0011) < 0.8) fallbackCity = 'Karachi';
-  else if (Math.abs(lat - 33.6844) < 0.8 && Math.abs(lon - 73.0479) < 0.8) fallbackCity = 'Islamabad';
-  else if (Math.abs(lat - 30.1575) < 0.5 && Math.abs(lon - 71.5249) < 0.5) fallbackCity = 'Multan';
-  else if (Math.abs(lat - 30.0452) < 0.8 && Math.abs(lon - 72.3489) < 0.8) fallbackCity = 'Vehari';
+  if (!rawCity || rawCity.toLowerCase() === 'current location') {
+    if (Math.abs(lat - 31.5497) < 0.8 && Math.abs(lon - 74.3436) < 0.8) rawCity = 'Lahore';
+    else if (Math.abs(lat - 24.8607) < 0.8 && Math.abs(lon - 67.0011) < 0.8) rawCity = 'Karachi';
+    else if (Math.abs(lat - 33.6844) < 0.8 && Math.abs(lon - 73.0479) < 0.8) rawCity = 'Islamabad';
+    else if (Math.abs(lat - 30.1575) < 0.5 && Math.abs(lon - 71.5249) < 0.5) rawCity = 'Multan';
+    else if (Math.abs(lat - 30.0452) < 0.8 && Math.abs(lon - 72.3489) < 0.8) rawCity = 'Vehari';
+    else rawCity = 'Vehari';
+  }
 
-  return { city: fallbackCity, country: 'Pakistan', countryCode: 'PK' };
+  // Clean rawCity: remove " District", " Division", " Tehsil", " City" suffixes and placeholders
+  let cleanCity = rawCity
+    .replace(/\s+District$/i, '')
+    .replace(/\s+Division$/i, '')
+    .replace(/\s+Tehsil$/i, '')
+    .replace(/^Current Location$/i, 'Vehari')
+    .trim();
+
+  if (!cleanCity) {
+    cleanCity = 'Vehari';
+  }
+
+  return { city: cleanCity, country, countryCode };
 };
 
 /**
@@ -386,9 +403,26 @@ const fetchWeatherForCoordinates = async (lat, lon, cityName, countryCode, units
  */
 export const getWeatherData = async (city, units = 'metric') => {
   try {
-    const geoRes = await axios.get(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
+    const cleanCityName = city
+      .replace(/\s+District$/i, '')
+      .replace(/\s+Division$/i, '')
+      .replace(/\s+Tehsil$/i, '')
+      .replace(/^Current Location$/i, 'Vehari')
+      .trim();
+
+    let geoRes = await axios.get(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanCityName)}&count=1`
     );
+
+    if (!geoRes.data.results || geoRes.data.results.length === 0) {
+      // Search fallback: try first word
+      const firstWord = cleanCityName.split(' ')[0];
+      if (firstWord && firstWord !== cleanCityName) {
+        geoRes = await axios.get(
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(firstWord)}&count=1`
+        );
+      }
+    }
 
     if (!geoRes.data.results || geoRes.data.results.length === 0) {
       const err = new Error('City not found');
@@ -403,7 +437,7 @@ export const getWeatherData = async (city, units = 'metric') => {
     return await fetchWeatherForCoordinates(
       result.latitude,
       result.longitude,
-      result.name,
+      cleanCityName || result.name,
       countryCode,
       units
     );

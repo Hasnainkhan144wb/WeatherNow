@@ -1,32 +1,67 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IoStar, IoStarOutline, IoTrashOutline, IoLocationSharp, IoCheckmarkCircle, IoRainyOutline, IoReloadOutline } from 'react-icons/io5';
-import { getWeatherData } from '../services/weatherService';
+import { getWeatherData, getWeatherDataByCoords } from '../services/weatherService';
 
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes cache TTL
 
-export const FavoritesWidget = ({ currentCity, onSelectCity, activeUnit }) => {
+const getCityName = (item) => {
+  if (!item) return 'Vehari';
+  let raw = typeof item === 'string' ? item : item.city;
+  if (!raw) return 'Vehari';
+  return raw
+    .replace(/\s+District$/i, '')
+    .replace(/\s+Division$/i, '')
+    .replace(/\s+Tehsil$/i, '')
+    .replace(/^Current Location$/i, 'Vehari')
+    .trim() || 'Vehari';
+};
+
+const getItemId = (item) => {
+  if (typeof item === 'object' && item && item.id) return String(item.id);
+  return getCityName(item);
+};
+
+export const FavoritesWidget = ({ currentCity, weatherData, onSelectCity, activeUnit }) => {
   const [favorites, setFavorites] = useState([]);
   const [favData, setFavData] = useState({});
   const [loadingMap, setLoadingMap] = useState({});
   const [errorMap, setErrorMap] = useState({});
   const cacheRef = useRef({}); // In-memory cache: { [city_unit]: { data, timestamp } }
 
-  // Load favorites from localstorage on mount
+  // Load favorites from localstorage on mount & normalize names
   useEffect(() => {
     const saved = localStorage.getItem('weathernow_favorites');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setFavorites(parsed);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Normalize items
+          const seen = new Set();
+          const normalized = [];
+          for (const item of parsed) {
+            const name = getCityName(item);
+            const lower = name.toLowerCase();
+            if (!seen.has(lower)) {
+              seen.add(lower);
+              if (typeof item === 'object' && item !== null) {
+                normalized.push({ ...item, city: name });
+              } else {
+                normalized.push(name);
+              }
+            }
+          }
+          setFavorites(normalized);
+          localStorage.setItem('weathernow_favorites', JSON.stringify(normalized));
+          return;
+        }
       } catch (e) {
-        setFavorites(['Lahore', 'Karachi', 'Islamabad', 'Multan']);
+        console.warn('Failed parsing favorites from localStorage', e);
       }
-    } else {
-      const defaults = ['Lahore', 'Karachi', 'Islamabad', 'Multan'];
-      setFavorites(defaults);
-      localStorage.setItem('weathernow_favorites', JSON.stringify(defaults));
     }
+    const defaults = ['Lahore', 'Karachi', 'Islamabad', 'Multan'];
+    setFavorites(defaults);
+    localStorage.setItem('weathernow_favorites', JSON.stringify(defaults));
   }, []);
 
   // Fetch live weather data for favorite cities
@@ -39,43 +74,54 @@ export const FavoritesWidget = ({ currentCity, onSelectCity, activeUnit }) => {
     const newLoadingMap = {};
     const newErrorMap = {};
 
-    // Determine cities that need fetching
-    const citiesToFetch = favorites.filter((city) => {
-      const cacheKey = `${city.toLowerCase()}_${unit}`;
+    // Determine items that need fetching
+    const itemsToFetch = favorites.filter((item) => {
+      const cityName = getCityName(item);
+      const cacheKey = `${cityName.toLowerCase()}_${unit}`;
       const cached = cacheRef.current[cacheKey];
       if (!forceRefresh && cached && now - cached.timestamp < CACHE_TTL_MS) {
-        newFavData[city] = cached.data;
+        newFavData[cityName] = cached.data;
         return false;
       }
-      newLoadingMap[city] = true;
+      newLoadingMap[cityName] = true;
       return true;
     });
 
     setFavData({ ...newFavData });
     setLoadingMap(newLoadingMap);
 
-    if (citiesToFetch.length === 0) return;
+    if (itemsToFetch.length === 0) return;
 
     // Parallel fetch using Promise.all
     await Promise.all(
-      citiesToFetch.map(async (city) => {
+      itemsToFetch.map(async (item) => {
+        const cityName = getCityName(item);
         try {
-          const data = await getWeatherData(city, unit);
+          let data;
+          if (typeof item === 'object' && item !== null && item.latitude && item.longitude) {
+            data = await getWeatherDataByCoords(item.latitude, item.longitude, unit);
+          } else {
+            data = await getWeatherData(cityName, unit);
+          }
+
           const rainProb = data?.daily?.[0]?.rainChance ?? data?.hourly?.[0]?.rainChance ?? 0;
           const processed = {
             temp: data.current.temp,
             condition: data.current.description || data.current.condition,
             country: data.country || 'PK',
-            rainChance: rainProb
+            rainChance: rainProb,
+            latitude: data.coordinates?.lat,
+            longitude: data.coordinates?.lon
           };
-          const cacheKey = `${city.toLowerCase()}_${unit}`;
+
+          const cacheKey = `${cityName.toLowerCase()}_${unit}`;
           cacheRef.current[cacheKey] = { data: processed, timestamp: Date.now() };
-          newFavData[city] = processed;
+          newFavData[cityName] = processed;
         } catch (e) {
-          console.error(`Failed fetching weather for favorite: ${city}`, e);
-          newErrorMap[city] = true;
+          console.error(`Failed fetching weather for favorite: ${cityName}`, e);
+          newErrorMap[cityName] = true;
         } finally {
-          newLoadingMap[city] = false;
+          newLoadingMap[cityName] = false;
         }
       })
     );
@@ -90,7 +136,7 @@ export const FavoritesWidget = ({ currentCity, onSelectCity, activeUnit }) => {
     fetchFavWeather();
   }, [favorites, activeUnit]);
 
-  // Periodic auto-refresh every 10-15 minutes & page focus refresh
+  // Periodic auto-refresh every 12 minutes & page focus refresh
   useEffect(() => {
     const interval = setInterval(() => {
       fetchFavWeather(true);
@@ -107,43 +153,47 @@ export const FavoritesWidget = ({ currentCity, onSelectCity, activeUnit }) => {
     };
   }, [favorites, activeUnit]);
 
+  const activeCityName = getCityName(weatherData?.city || currentCity);
+
   const isFavorite = favorites.some(
-    (c) => c.toLowerCase() === currentCity.toLowerCase()
+    (item) => getCityName(item).toLowerCase() === activeCityName.toLowerCase()
   );
 
   const toggleFavorite = () => {
     let updated;
     if (isFavorite) {
       updated = favorites.filter(
-        (c) => c.toLowerCase() !== currentCity.toLowerCase()
+        (item) => getCityName(item).toLowerCase() !== activeCityName.toLowerCase()
       );
     } else {
-      const exists = favorites.some(
-        (c) => c.toLowerCase() === currentCity.toLowerCase()
-      );
-      if (!exists) {
-        const capitalized = currentCity
-          .split(' ')
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-          .join(' ');
-        updated = [...favorites, capitalized];
-      } else {
-        updated = favorites;
-      }
+      const newFavObj = {
+        id: Date.now(),
+        city: activeCityName,
+        country: weatherData?.country || 'PK',
+        latitude: weatherData?.coordinates?.lat || null,
+        longitude: weatherData?.coordinates?.lon || null,
+        isCurrentLocation: true,
+        updatedAt: Date.now()
+      };
+      updated = [...favorites, newFavObj];
     }
     setFavorites(updated);
     localStorage.setItem('weathernow_favorites', JSON.stringify(updated));
   };
 
-  const deleteFavorite = (e, cityToDelete) => {
+  const deleteFavorite = (e, itemToDelete) => {
     e.stopPropagation();
-    const updated = favorites.filter((c) => c !== cityToDelete);
+    const targetName = getCityName(itemToDelete).toLowerCase();
+    const updated = favorites.filter((item) => getCityName(item).toLowerCase() !== targetName);
     setFavorites(updated);
     localStorage.setItem('weathernow_favorites', JSON.stringify(updated));
   };
 
-  const handleCityClick = (city) => {
-    onSelectCity(city);
+  const handleCityClick = (item) => {
+    const cityName = getCityName(item);
+    const lat = typeof item === 'object' && item !== null ? item.latitude : null;
+    const lon = typeof item === 'object' && item !== null ? item.longitude : null;
+    onSelectCity(cityName, false, lat, lon);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -201,21 +251,23 @@ export const FavoritesWidget = ({ currentCity, onSelectCity, activeUnit }) => {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           <AnimatePresence mode="popLayout">
-            {favorites.map((city, idx) => {
-              const details = favData[city];
-              const isLoading = loadingMap[city];
-              const isError = errorMap[city];
-              const isCurrent = city.toLowerCase() === currentCity.toLowerCase();
+            {favorites.map((item, idx) => {
+              const cityName = getCityName(item);
+              const itemId = getItemId(item);
+              const details = favData[cityName];
+              const isLoading = loadingMap[cityName];
+              const isError = errorMap[cityName];
+              const isCurrent = cityName.toLowerCase() === activeCityName.toLowerCase();
 
               return (
                 <motion.div
-                  key={city}
+                  key={itemId}
                   layout
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.25, delay: idx * 0.04 }}
-                  onClick={() => handleCityClick(city)}
+                  onClick={() => handleCityClick(item)}
                   className={`relative overflow-hidden group cursor-pointer p-3 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${isCurrent
                       ? 'bg-blue-600/25 border-blue-500 shadow-lg shadow-blue-500/15 ring-2 ring-blue-500/40 scale-[1.02]'
                       : 'bg-slate-900/40 border-white/10 hover:border-white/25 hover:bg-slate-900/60 hover:scale-[1.01]'
@@ -235,18 +287,19 @@ export const FavoritesWidget = ({ currentCity, onSelectCity, activeUnit }) => {
                     </div>
 
                     <button
-                      onClick={(e) => deleteFavorite(e, city)}
-                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 p-1 rounded-full hover:bg-white/10 transition-all duration-200"
+                      onClick={(e) => deleteFavorite(e, item)}
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-red-500/10 dark:bg-red-500/15 border border-red-500/20 dark:border-red-500/30 text-red-500 dark:text-red-400 hover:bg-red-500/25 dark:hover:bg-red-500/30 hover:text-red-600 dark:hover:text-red-300 hover:scale-110 transition-all duration-200 cursor-pointer shrink-0"
+                      aria-label="Remove favorite city"
                       title="Remove pin"
                     >
-                      <IoTrashOutline size={12} />
+                      <IoTrashOutline className="text-xs sm:text-sm text-red-500 dark:text-red-400" />
                     </button>
                   </div>
 
                   {/* City Name & Condition */}
                   <div className="z-10 my-0.5">
                     <h4 className="text-xs sm:text-sm font-bold font-outfit text-white truncate tracking-wide">
-                      {city}
+                      {cityName}
                     </h4>
                     <p className="text-[11px] text-slate-300 mt-0.5 capitalize truncate font-medium">
                       {isLoading
